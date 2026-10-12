@@ -27,7 +27,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - [ ] Demo banner so visitors know they're in the sandbox
 - [ ] Quantity `−` / `+` buttons (replaces the tiny native spinner)
 - [ ] Check-off (done) toggle in the UI
-- [ ] Confirm the interactive Access login end to end (sign in, add, remove, refresh) on desktop and phone
+- [ ] Check the deployed apps on a phone (the desktop login is confirmed)
 - [ ] Verify the deployed apps in a real browser (desktop and phone)
 - [ ] Rate limiting rule on the demo Worker's `/api/*`
 - [ ] Decide: one private list per user, or shared household lists
@@ -61,6 +61,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | Two Workers from one codebase (`nutrition-app` and `nutrition-demo`) with separate D1 databases | Access on `workers.dev` protects a whole Worker URL and a `/demo` path bypass could not be confirmed there. Separate Workers need no path rules and the public demo has no binding to real data. |
 | `DEMO_ONLY` var makes every items route the sandbox | The front end needs no change: `/` on the demo Worker calls `/api/items`, which is the sandbox there |
 | Verify the Access JWT header in the Worker instead of using `ctx.access` | Workers with static assets run behind an internal router that doesn't pass `ctx.access`; the signed `Cf-Access-Jwt-Assertion` header is still available |
+| Hostname-based Access application for `nutrition-app.rodesignedthat.workers.dev` instead of the Worker's own Access tab | The Worker-level application returned Blocked for the owner's email despite a matching Allow policy, and its policy evaluation couldn't be inspected. The hostname-based application worked immediately. |
 | Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
 
 ---
@@ -169,3 +170,13 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Corrected the README Access steps (the setting is the Worker's **Access** tab, not Settings → Domains & Routes).
 - Not yet confirmed by an interactive login in a real browser; tracked under Upcoming.
 - Patch bump: configuration of an existing capability, no code change.
+
+### v0.4.2 — 2026-10-12 — Access login working
+
+- The Worker-level Access application (`nutrition-app - Cloudflare Workers`) blocked the owner's email on every attempt (4+ blocked logins) even after resetting its policy to a single Allow rule. The cause was not identified; the access logs did not expose a reason and the API token created to inspect it lacked the required permission.
+- Replaced it with a standard hostname-based self-hosted Access application for `nutrition-app.rodesignedthat.workers.dev` (Allow, owner email, all login methods).
+- The new application has a different AUD tag; read it from the login redirect (`kid` equals the `aud` claim), set `POLICY_AUD`, and redeployed.
+- Verified: unauthenticated `/` and `/api/items` redirect to login (302), a forged `Cf-Access-Jwt-Assertion` header is blocked, the demo remains public (200), and **the owner confirmed an interactive login and working app**.
+- Documented the correct Access setup and the AUD-changes-on-recreate gotcha in the README.
+- Housekeeping: the temporary read-only API token and its file were to be deleted and revoked after diagnosis.
+- Patch bump: configuration change, no code change.

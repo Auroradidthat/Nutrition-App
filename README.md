@@ -2,7 +2,7 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: deployed (v0.4.1).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). The public demo is at https://nutrition-demo.rodesignedthat.workers.dev.
+> **Status: deployed and working (v0.4.2).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only); the public demo is at https://nutrition-demo.rodesignedthat.workers.dev.
 
 ## Features
 
@@ -132,10 +132,15 @@ npm run deploy:demo   # public demo (nutrition-demo)
 
 Protect the real app with Cloudflare Access (one-time):
 
-1. Complete **Zero Trust** setup (Free plan) if you haven't; note your team name (`<team>.cloudflareaccess.com`).
-2. Dashboard → **Workers & Pages** → `nutrition-app` → **Access** tab → **Protect this Worker behind Access** → **All traffic**, with an **Allow** policy for your email.
-3. Put your team domain in `TEAM_DOMAIN` and the application's **AUD tag** in `POLICY_AUD` in `wrangler.toml`, then `npm run deploy`. The AUD tag is under Zero Trust → Access → Applications → the app → Overview (it is also the `kid` value in the login redirect URL).
-4. Do **not** enable Access on `nutrition-demo`.
+1. Complete **Zero Trust** setup (Free plan) and note your team domain (`https://<team>.cloudflareaccess.com`). New accounts use the Cloudflare identity provider by default; add **One-time PIN** under **Integrations → Identity providers** if you want email codes.
+2. **Access controls → Applications → Add an application → Self-hosted.**
+   - Public hostname: `nutrition-app.rodesignedthat.workers.dev` (use the **Custom** input), no path.
+   - Policy: **Allow**, **Include → Emails** = your email. No Require or Exclude rules.
+   - Login methods: accept all available identity providers.
+3. Put your team domain in `TEAM_DOMAIN` and the application's **AUD tag** in `POLICY_AUD` in `wrangler.toml`, then `npm run deploy`. The AUD tag is under the application's Overview, and is also the `kid` value in the login redirect URL (the `aud` claim of the `meta` token matches it). **Changing or recreating the Access application changes its AUD tag**, so repeat this step.
+4. Do **not** protect `nutrition-demo`.
+
+Use a **hostname-based application** rather than the Worker's own **Access** tab. In this account, the Worker-level application blocked the owner's email even with a correct Allow policy (see DEVLOG v0.4.2).
 
 The Worker verifies the signed `Cf-Access-Jwt-Assertion` header itself rather than relying on `ctx.access`, because Workers with static assets don't receive `ctx.access`.
 
