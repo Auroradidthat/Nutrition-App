@@ -1,0 +1,24 @@
+name = "grocery-list-app"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Static front end. Only /api/* runs the Worker first; everything else
+# (including /demo) is served from public/ (falls back to index.html).
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "grocery-db"
+database_id = "REPLACE_WITH_DATABASE_ID"   # printed by `wrangler d1 create grocery-db`
+migrations_dir = "migrations"
+
+# Daily cleanup of expired demo sessions
+[triggers]
+crons = ["0 4 * * *"]
+
+[vars]
+TEAM_DOMAIN = "https://REPLACE_WITH_TEAM_NAME.cloudflareaccess.com"
+POLICY_AUD  = "REPLACE_WITH_ACCESS_APPLICATION_AUD_TAG"

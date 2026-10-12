@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grocery App</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/demo">Demo</a>
+        </nav>
+    </header>
+    <main>
+        <section>
+            <div>
+                <h1>Grocery App</h1>
+                <!--GROCERY LIST PROPAGATES HERE-->
+                <ul id="grocery-list" class="grocery-list"></ul>
+            </div>
+        </section>
+        <!--END Grocery List Display-->
+
+        <!--BEGIN Grocery List Input-->
+        <section>
+            <form id="add-form">
+                <label for="item-input">Add Grocery Item:</label>
+                <input type="text" id="item-input" placeholder="e.g. Milk" maxlength="100" autocomplete="off">
+                <label for="quantity-input"> Item Quantity:</label>
+                <input type="number" id="quantity-input" value="1" min="1" max="99" inputmode="numeric">
+                <button type="submit" id="add-btn">Add to list</button>
+            </form>
+        </section>
+        <!--END Grocery List Input-->
+        <section>
+            <!--ERRORS APPEAR HERE-->
+            <div>
+                <p id="status" role="status"></p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

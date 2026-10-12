@@ -1,0 +1,112 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Mobile-first: base styles target small screens. */
+body {
+    font-family: system-ui, sans-serif;
+    line-height: 1.4;
+    padding-bottom: 2rem;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    flex-direction: row;
+    border: solid 3px black;
+    padding: 1rem;
+}
+
+nav a {
+    display: flex;
+    color: black;
+    padding: 0.5rem;
+    font-weight: bold;
+}
+
+nav a:hover {
+    color: blue;
+}
+
+main {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+h1 {
+    margin-bottom: 1rem;
+}
+
+#status {
+    min-height: 1.4em;
+    margin-bottom: 0.5rem;
+}
+
+.grocery-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.grocery-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    background-color: white;
+}
+
+/* Lets long unbroken names wrap instead of pushing Remove off-screen. */
+.grocery-list li span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.item-qty {
+    margin-left: auto;      /* pushes qty and button to the right */
+    font-weight: bold;
+}
+
+.grocery-list li button:hover {
+    color: white;
+    font-weight: bold;
+    background-color: red;
+}
+
+#add-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+/* 16px input font prevents iOS Safari from zooming on focus. */
+input[type="text"],
+input[type="number"] {
+    font-size: 16px;
+    padding: 0.75rem;
+    min-height: 44px;
+}
+
+button {
+    font-size: 1rem;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+}
+
+@media (min-width: 600px) {
+    #add-form {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    #add-form input {
+        flex: 1;
+    }
+}
