@@ -4,6 +4,11 @@
 // Both share the same handlers; only the `owner` value differs.
 
 const MAX_TEXT_LENGTH = 100;
+const MIN_QUANTITY = 1;
+const MAX_QUANTITY = 99;
+// Keep in sync with ALLOWED_NAME in public/script.js.
+// Letters (any language), combining marks, numbers, spaces, and: ' ’ & , . - % ( ) /
+const ALLOWED_NAME = /^[\p{L}\p{M}\p{N} '’&,.\-%()/]+$/u;
 const MAX_ITEMS_PER_DEMO = 50;
 const MAX_ITEMS_PER_USER = 500;
 const DEMO_COOKIE = "demo_sid";
@@ -84,19 +89,34 @@ async function handle(request, { db, owner, itemId, limit, seed }) {
       );
     }
     const { results } = await db
-      .prepare("SELECT id, text, done FROM items WHERE owner = ? ORDER BY id")
+      .prepare("SELECT id, text, quantity, done FROM items WHERE owner = ? ORDER BY id")
       .bind(owner)
       .all();
     return json(results.map(toItem));
   }
 
-  // POST /items  { text }
+  // POST /items  { text, quantity? }
   if (method === "POST" && itemId === null) {
     const body = await readJson(request);
     const text = typeof body?.text === "string" ? body.text.trim() : "";
     if (!text) return json({ error: "Text is required" }, 400);
     if (text.length > MAX_TEXT_LENGTH) {
       return json({ error: `Text must be ${MAX_TEXT_LENGTH} characters or fewer` }, 400);
+    }
+    if (!ALLOWED_NAME.test(text)) {
+      return json(
+        { error: "Item names can only use letters, numbers, spaces and ' & , . - % ( ) /" },
+        400
+      );
+    }
+
+    // Quantity is optional (defaults to 1) but must be a whole number in range.
+    const quantity = body.quantity === undefined ? 1 : body.quantity;
+    if (!Number.isInteger(quantity) || quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
+      return json(
+        { error: `Quantity must be a whole number from ${MIN_QUANTITY} to ${MAX_QUANTITY}` },
+        400
+      );
     }
 
     const count = await db
@@ -106,8 +126,10 @@ async function handle(request, { db, owner, itemId, limit, seed }) {
     if (count >= limit) return json({ error: "List is full" }, 409);
 
     const row = await db
-      .prepare("INSERT INTO items (owner, text) VALUES (?, ?) RETURNING id, text, done")
-      .bind(owner, text)
+      .prepare(
+        "INSERT INTO items (owner, text, quantity) VALUES (?, ?, ?) RETURNING id, text, quantity, done"
+      )
+      .bind(owner, text, quantity)
       .first();
     return json(toItem(row), 201);
   }
@@ -118,7 +140,9 @@ async function handle(request, { db, owner, itemId, limit, seed }) {
     if (typeof body?.done !== "boolean") return json({ error: "done must be a boolean" }, 400);
 
     const row = await db
-      .prepare("UPDATE items SET done = ? WHERE id = ? AND owner = ? RETURNING id, text, done")
+      .prepare(
+        "UPDATE items SET done = ? WHERE id = ? AND owner = ? RETURNING id, text, quantity, done"
+      )
       .bind(body.done ? 1 : 0, itemId, owner)
       .first();
     return row ? json(toItem(row)) : json({ error: "Not found" }, 404);
@@ -214,7 +238,7 @@ async function readJson(request) {
 }
 
 function toItem(row) {
-  return { id: row.id, text: row.text, done: Boolean(row.done) };
+  return { id: row.id, text: row.text, quantity: row.quantity, done: Boolean(row.done) };
 }
 
 function json(data, status = 200) {
