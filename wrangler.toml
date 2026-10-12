@@ -1,4 +1,4 @@
-name = "grocery-list-app"
+name = "nutrition-app"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
@@ -11,8 +11,8 @@ run_worker_first = ["/api/*"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "grocery-db"
-database_id = "REPLACE_WITH_DATABASE_ID"   # printed by `wrangler d1 create grocery-db`
+database_name = "nutrition-db"
+database_id = "REPLACE_WITH_DATABASE_ID"   # printed by `wrangler d1 create nutrition-db`
 migrations_dir = "migrations"
 
 # Daily cleanup of expired demo sessions
