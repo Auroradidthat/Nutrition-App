@@ -2,7 +2,7 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: in development (v0.3.2).** The front end is connected to the Worker API and works end to end locally. It has not been deployed yet. See [DEVLOG.md](DEVLOG.md) for what's planned and the full change history.
+> **Status: deployed, Access login pending (v0.4.0).** The public demo is live at https://nutrition-demo.rodesignedthat.workers.dev. The real app is deployed at https://nutrition-app.rodesignedthat.workers.dev and returns 401 until Cloudflare Access is configured. See [DEVLOG.md](DEVLOG.md) for what's planned and the full change history.
 
 ## Features
 
@@ -39,7 +39,7 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 ├── migrations/              # D1 schema migrations (applied in order)
 │   ├── 0001_init.sql
 │   └── 0002_add_quantity.sql
-├── wrangler.toml            # Cloudflare config
+├── wrangler.toml            # Cloudflare config (default env = real app, env.demo = public demo)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── package.json
@@ -105,20 +105,41 @@ The same four routes exist under `/api/demo/items` for the public demo, identifi
 
 ## Authentication and the demo
 
-- **Real users:** Cloudflare Access sits in front of the app. The Worker verifies the `Cf-Access-Jwt-Assertion` token (signature, expiry, issuer, audience) and uses the email as the owner.
-- **Demo:** `/demo` and `/api/demo/*` bypass Access. Each visitor gets a random `demo_sid` cookie and an isolated, pre-seeded list. A daily cron deletes demo data older than 24 hours.
+The app is deployed as **two Workers built from the same code**, so the public demo can never reach real data:
+
+| Worker | URL | Access | Database |
+|---|---|---|---|
+| `nutrition-app` (default) | `nutrition-app.rodesignedthat.workers.dev` | Cloudflare Access, your email only | `nutrition-db` |
+| `nutrition-demo` (`--env demo`) | `nutrition-demo.rodesignedthat.workers.dev` | None (public) | `nutrition-demo-db` |
+
+- **Real users:** Cloudflare Access sits in front of the whole `nutrition-app` URL. The Worker also verifies the `Cf-Access-Jwt-Assertion` token (signature, expiry, issuer, audience) and uses the email as the owner.
+- **Demo:** the demo Worker runs with `DEMO_ONLY=true`, which makes every items route the sandbox. Each visitor gets a random `demo_sid` cookie and an isolated, pre-seeded list. A daily cron deletes demo data older than 24 hours. Give interviewers the demo URL.
 
 ## Deploying
 
+One-time setup:
+
 1. `npx wrangler login`
-2. `npx wrangler d1 create nutrition-db` and put the printed `database_id` in `wrangler.toml`
-3. `npm run db:migrate:remote`
-4. `npm run deploy`
-5. In Cloudflare Zero Trust:
-   - Create a self-hosted **Access** application for the app's domain and allow your email
-   - Copy its **AUD tag** and your **team domain** into `POLICY_AUD` and `TEAM_DOMAIN` in `wrangler.toml`
-   - Add a **Bypass** policy for `/demo*` and `/api/demo/*`
-6. Add a Cloudflare **rate limiting rule** on `/api/demo/*`
+2. `npx wrangler d1 create nutrition-db` and `npx wrangler d1 create nutrition-demo-db`, then put each printed `database_id` in `wrangler.toml`
+3. Apply migrations: `npm run db:migrate:remote` and `npm run db:migrate:demo:remote`
+
+Deploy:
+
+```bash
+npm run deploy        # real app (nutrition-app)
+npm run deploy:demo   # public demo (nutrition-demo)
+```
+
+Protect the real app with Cloudflare Access:
+
+1. Cloudflare dashboard → **Workers & Pages** → `nutrition-app` → **Settings** → **Domains & Routes** → on the `workers.dev` route, enable **Cloudflare Access**.
+2. In **Zero Trust → Access → Applications**, open the generated application and make sure its policy allows only your email.
+3. Copy the application's **AUD tag** and your Zero Trust **team domain** (`https://<team>.cloudflareaccess.com`) into `POLICY_AUD` and `TEAM_DOMAIN` in `wrangler.toml`, then `npm run deploy` again.
+4. Do **not** enable Access on `nutrition-demo`.
+
+Optional: add a Cloudflare **rate limiting rule** on the demo Worker's `/api/*`.
+
+Local demo-only mode: `npm run dev:demo` (port 8788).
 
 ## Roadmap
 

@@ -71,7 +71,9 @@ export default {
     const route = url.pathname.match(/^\/api\/(demo\/)?items(?:\/(\d+))?$/);
     if (!route) return json({ error: "Not found" }, 404);
 
-    const isDemo = Boolean(route[1]);
+    // In the demo-only deployment every items route is the public sandbox, so the
+    // front end works unchanged at "/" and real-user auth is never involved.
+    const isDemo = Boolean(route[1]) || env.DEMO_ONLY === "true";
     const itemId = route[2] ? Number(route[2]) : null;
 
     const handler = HANDLERS[`${request.method} ${itemId === null ? "collection" : "item"}`];

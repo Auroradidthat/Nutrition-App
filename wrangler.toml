@@ -1,3 +1,7 @@
+# Two deployments from one codebase:
+#   nutrition-app   (default)  -> real app, protected by Cloudflare Access
+#   nutrition-demo  (--env demo) -> public sandbox with its own database, no login
+
 name = "nutrition-app"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
@@ -12,7 +16,7 @@ run_worker_first = ["/api/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "nutrition-db"
-database_id = "REPLACE_WITH_DATABASE_ID"   # printed by `wrangler d1 create nutrition-db`
+database_id = "7f56a911-c808-4594-a062-1338b3b4d631"
 migrations_dir = "migrations"
 
 # Daily cleanup of expired demo sessions
@@ -22,3 +26,28 @@ crons = ["0 4 * * *"]
 [vars]
 TEAM_DOMAIN = "https://REPLACE_WITH_TEAM_NAME.cloudflareaccess.com"
 POLICY_AUD  = "REPLACE_WITH_ACCESS_APPLICATION_AUD_TAG"
+
+# ---------- Public demo (deploy with: npm run deploy:demo) ----------
+# Bindings and vars are not inherited by environments, so they are repeated here.
+# DEMO_ONLY makes every items route the cookie-based sandbox, so this Worker
+# never authenticates real users and has no access to the real database.
+
+[env.demo]
+name = "nutrition-demo"
+
+[env.demo.assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[[env.demo.d1_databases]]
+binding = "DB"
+database_name = "nutrition-demo-db"
+database_id = "1ced3272-43f1-4ce6-ae29-8336025520ae"
+migrations_dir = "migrations"
+
+[env.demo.triggers]
+crons = ["0 4 * * *"]
+
+[env.demo.vars]
+DEMO_ONLY = "true"

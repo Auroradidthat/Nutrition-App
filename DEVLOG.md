@@ -27,8 +27,9 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - [ ] Demo banner so visitors know they're in the sandbox
 - [ ] Quantity `−` / `+` buttons (replaces the tiny native spinner)
 - [ ] Check-off (done) toggle in the UI
-- [ ] Deploy Worker + D1, configure Cloudflare Access and the `/demo` bypass
-- [ ] Rate limiting rule on `/api/demo/*`
+- [ ] Enable Cloudflare Access on `nutrition-app`, then put `TEAM_DOMAIN` and `POLICY_AUD` in `wrangler.toml` and redeploy
+- [ ] Verify the deployed apps in a real browser (desktop and phone)
+- [ ] Rate limiting rule on the demo Worker's `/api/*`
 - [ ] Decide: one private list per user, or shared household lists
 - [ ] Automated tests for `public/rules.js` and `src/store.js`
 - [ ] Reword placeholder text and labels from "grocery" to nutrition theme
@@ -57,6 +58,8 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | `DEV_USER` honoured only on localhost hostnames | A stray production variable can no longer silently bypass authentication; fails closed |
 | Worker split into `auth`, `demo`, `store`, `http` modules | `index.js` is routing and handlers only; SQL and auth are isolated and easier to test |
 | One delegated click listener for Remove buttons | One listener instead of one closure per row |
+| Two Workers from one codebase (`nutrition-app` and `nutrition-demo`) with separate D1 databases | Access on `workers.dev` protects a whole Worker URL and a `/demo` path bypass could not be confirmed there. Separate Workers need no path rules and the public demo has no binding to real data. |
+| `DEMO_ONLY` var makes every items route the sandbox | The front end needs no change: `/` on the demo Worker calls `/api/items`, which is the sandbox there |
 | Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
 
 ---
@@ -144,3 +147,14 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - **Small visible changes:** validation messages are now identical in the browser and API (e.g. "Quantity must be a whole number from 1 to 99."); a new demo session is seeded on its first request of any method, not only GET; unsupported methods return 405 before authentication.
 - Verified against the running container: 30+ API checks (validation, ownership, 401/403/404/405, host guard, demo, cron handler) and the real `script.js` module run against the live API for `/` and `/demo`. Not yet verified in a real browser.
 - Patch bump: internal change, no new capability.
+
+### v0.4.0 — 2026-10-12 — Deployed to Cloudflare; separate public demo
+
+- Created D1 databases `nutrition-db` (real) and `nutrition-demo-db` (demo) and applied migrations 0001–0002 to both.
+- Deployed `nutrition-app` at https://nutrition-app.rodesignedthat.workers.dev (returns 401 until Access is configured, so it fails closed).
+- Added `[env.demo]` to `wrangler.toml` and deployed `nutrition-demo` at https://nutrition-demo.rodesignedthat.workers.dev with its own database and no login.
+- Worker: `DEMO_ONLY="true"` treats every items route as the cookie-based sandbox (`src/index.js`).
+- New npm scripts: `deploy:demo`, `dev:demo`, `db:migrate:demo:remote`.
+- Verified live: static files, demo seeding/add/validation/origin checks, real app returns 401, and the real database holds no demo data. Removed 7 sandbox rows my own live tests had written to the real database before the split.
+- Not yet done: Cloudflare Access on `nutrition-app`; real-browser verification.
+- Minor bump: new capability (production deployment and separate demo).
