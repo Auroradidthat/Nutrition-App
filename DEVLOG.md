@@ -53,6 +53,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | Absolute asset paths in `index.html` (`/script.js`) | The app is now always served by the Worker, and absolute paths keep `/demo/` working. (Earlier, relative paths were used so the page worked via `file://`.) |
 | Save to the server before updating the UI | The server assigns IDs and is the source of truth; failures show a message instead of a list that silently diverges |
 | Disable the Add button while saving | Prevents duplicate items from double taps |
+| Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
 
 ---
 
@@ -115,3 +116,13 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Verified by running the real `script.js` against the local Worker with a stubbed DOM: load, add, validation errors, remove, reload persistence, demo seeding and cookie session, and the server-down message.
 - Not yet verified in a real browser.
 - Minor bump: new user-visible capability (persistence).
+
+### v0.3.1 — 2026-10-11 — Docker setup
+
+- Added `Dockerfile`, `docker-compose.yml` and `.dockerignore` to run the app with `docker compose up -d --build`.
+- The container runs `wrangler dev` on `0.0.0.0:8787` and applies D1 migrations on start.
+- Local D1 data persists in the `wrangler_state` Docker volume; `node_modules` is kept in its own volume so Linux and Windows dependencies don't clash.
+- Port is published on `127.0.0.1` only. This mode has no real authentication (`DEV_USER` stands in for a signed-in user), so it must not be exposed to a network.
+- Verified: image builds, `/`, `/demo` and the API respond, validation works, and data survives a container restart.
+- README gained a "With Docker" section.
+- Patch bump: tooling only, no change to app behaviour.

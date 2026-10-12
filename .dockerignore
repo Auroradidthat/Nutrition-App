@@ -1,0 +1,7 @@
+node_modules
+.wrangler
+.git
+.dev.vars
+npm-debug.log
+Dockerfile
+docker-compose.yml

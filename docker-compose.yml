@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    ports:
+      # Bound to localhost only. The app has no real authentication in this mode
+      # (DEV_USER from .dev.vars stands in for a signed-in user), so don't expose it.
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - .:/app                          # live-edit source from the host
+      - node_modules:/app/node_modules  # keep Linux deps separate from Windows ones
+      - wrangler_state:/app/.wrangler   # persists the local D1 database
+    restart: unless-stopped
+
+volumes:
+  node_modules:
+  wrangler_state:

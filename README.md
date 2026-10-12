@@ -51,6 +51,22 @@ npm run db:migrate:local   # creates/updates the local D1 database
 npm run dev                # http://localhost:8787  (and /demo for the sandbox)
 ```
 
+### With Docker
+
+```bash
+docker compose up -d --build   # build and start in the background
+docker compose logs -f         # watch the logs
+docker compose down            # stop (data is kept in a Docker volume)
+```
+
+Then open http://localhost:8787.
+
+- The container runs `wrangler dev` with a local D1 database stored in the `wrangler_state` Docker volume, so items survive restarts. `docker compose down -v` deletes that data.
+- Migrations are applied automatically on start.
+- The project folder is mounted into the container, so edits to `public/` and `src/` show up without rebuilding (hard refresh the browser for front-end changes).
+- It still needs `.dev.vars` (see above). The port is bound to `127.0.0.1` only.
+- **This is not a production deployment.** There is no real authentication in this mode: `DEV_USER` stands in for a signed-in user, so anyone who can reach the port is that user. Don't expose it to a network or the internet. For real multi-device use, deploy to Cloudflare (see [Deploying](#deploying)).
+
 The first start can take 30+ seconds. After changing `script.js` or `styles.css`, hard refresh (Ctrl+Shift+R) to bypass the browser cache.
 
 Locally there is no Cloudflare Access in front of the Worker, so `.dev.vars` supplies a fake signed-in user:
