@@ -2,18 +2,20 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: in development.** The front end works as a standalone, in-memory list. The Worker API is built and tested locally but the front end is not connected to it yet. See [Roadmap](#roadmap) and [DEVLOG.md](DEVLOG.md).
+> **Status: in development (v0.3.0).** The front end is connected to the Worker API and works end to end locally. It has not been deployed yet. See [Roadmap](#roadmap) and [DEVLOG.md](DEVLOG.md).
 
 ## Features
 
-**Front end (working now)**
-- Add items with a name and a quantity (1–99)
+**Front end**
+- Add items with a name and a quantity (1–99), saved on the server
 - Remove items individually
+- List persists across refreshes and devices
 - Character allowlist on item names (letters, numbers, spaces and `' ’ & , . - % ( ) /`)
-- Inline error messages
+- Inline error messages (validation, server errors, lost connection, signed out)
+- `/demo` automatically uses the public sandbox API
 - Mobile-first layout with 44px tap targets and no iOS zoom on inputs
 
-**Back end (built, not yet connected)**
+**Back end**
 - REST API on a Cloudflare Worker, storage in D1 (SQLite)
 - Authentication via Cloudflare Access, verified server-side from the signed JWT
 - Public `/demo` sandbox for visitors who don't have an account
@@ -41,15 +43,15 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 
 **Requirements:** Node.js 22 or newer (Wrangler requirement) and a Cloudflare account (only needed to deploy).
 
-### Front end only
-Open `public/index.html` in a browser, or serve the `public/` folder with any static server (e.g. the VS Code Live Server extension). No build step.
+The front end needs the Worker API, so opening `public/index.html` directly (or via a static server such as Live Server) will load the page but can't save or load items. Run the full stack instead:
 
-### Full stack, locally
 ```bash
 npm install
-npm run db:migrate:local   # creates the local D1 database
-npm run dev                # http://localhost:8787
+npm run db:migrate:local   # creates/updates the local D1 database
+npm run dev                # http://localhost:8787  (and /demo for the sandbox)
 ```
+
+The first start can take 30+ seconds. After changing `script.js` or `styles.css`, hard refresh (Ctrl+Shift+R) to bypass the browser cache.
 
 Locally there is no Cloudflare Access in front of the Worker, so `.dev.vars` supplies a fake signed-in user:
 
@@ -96,8 +98,9 @@ The same four routes exist under `/api/demo/items` for the public demo, identifi
 
 ## Roadmap
 
-- [ ] Connect `public/script.js` to the API (replace the in-memory array)
-- [ ] Demo mode: banner and `/demo` detection in the front end
+- [x] Connect `public/script.js` to the API (v0.3.0)
+- [x] `/demo` detection in the front end (v0.3.0)
+- [ ] Demo banner so visitors know they're in the sandbox
 - [ ] Per-item done/check-off in the UI (API already supports it)
 - [ ] `−` / `+` buttons for quantity
 - [ ] Deploy and configure Access

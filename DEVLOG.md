@@ -24,8 +24,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 
 ## Upcoming
 
-- [ ] Connect `public/script.js` to the API (load, add, remove through `fetch`)
-- [ ] Demo mode in the front end: detect `/demo`, switch API base, show banner
+- [ ] Demo banner so visitors know they're in the sandbox
 - [ ] Quantity `−` / `+` buttons (replaces the tiny native spinner)
 - [ ] Check-off (done) toggle in the UI
 - [ ] Deploy Worker + D1, configure Cloudflare Access and the `/demo` bypass
@@ -35,7 +34,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 
 ## Known issues
 
-- Front end and Worker are not connected; refreshing the page loses the list.
+- The front end can no longer be opened as a plain file or via Live Server; it needs `npm run dev`.
 - Desktop layout: `#add-form input { flex: 1 }` also stretches the quantity input.
 - `npm` reports v9.6.1 under Node 24, suggesting a stale global npm on PATH. Not blocking.
 
@@ -51,7 +50,9 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | `"` not allowed in names | Closes off attribute/injection edge cases; users can write "inch" |
 | Same allowlist enforced in browser and Worker | Browser check is only for UX; the Worker is the real enforcement |
 | Quantity capped at 1–99, integers only | Simple, realistic range; rejects `0`, negatives, decimals, strings |
-| Relative asset paths in `index.html` | Absolute `/script.js` broke when opened via `file://` or Live Server |
+| Absolute asset paths in `index.html` (`/script.js`) | The app is now always served by the Worker, and absolute paths keep `/demo/` working. (Earlier, relative paths were used so the page worked via `file://`.) |
+| Save to the server before updating the UI | The server assigns IDs and is the source of truth; failures show a message instead of a list that silently diverges |
+| Disable the Add button while saving | Prevents duplicate items from double taps |
 
 ---
 
@@ -102,3 +103,15 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Added `README.md` and this `DEVLOG.md`.
 - Began semantic versioning: `package.json` set to `0.2.0`; past commits tagged `v0.1.0` and `v0.1.1`.
 - Minor bump: new backwards-compatible capability (quantity) plus a schema migration.
+
+### v0.3.0 — 2026-10-11 — Front end connected to the API
+
+- `public/script.js` now loads, adds and removes items through the Worker API instead of an in-memory array.
+- Items persist across refreshes and are shared across devices for the same signed-in user.
+- `/demo` is detected from the URL and uses `/api/demo/items` (public sandbox).
+- Friendly status messages for server errors, lost connection and expired sign-in (401).
+- Add button is disabled while a save is in flight.
+- `index.html` asset paths changed back to absolute (`/script.js`, `/styles.css`).
+- Verified by running the real `script.js` against the local Worker with a stubbed DOM: load, add, validation errors, remove, reload persistence, demo seeding and cookie session, and the server-down message.
+- Not yet verified in a real browser.
+- Minor bump: new user-visible capability (persistence).
