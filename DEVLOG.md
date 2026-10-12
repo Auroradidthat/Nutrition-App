@@ -27,7 +27,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - [ ] Demo banner so visitors know they're in the sandbox
 - [ ] Quantity `−` / `+` buttons (replaces the tiny native spinner)
 - [ ] Check-off (done) toggle in the UI
-- [ ] Enable Cloudflare Access on `nutrition-app`, then put `TEAM_DOMAIN` and `POLICY_AUD` in `wrangler.toml` and redeploy
+- [ ] Confirm the interactive Access login end to end (sign in, add, remove, refresh) on desktop and phone
 - [ ] Verify the deployed apps in a real browser (desktop and phone)
 - [ ] Rate limiting rule on the demo Worker's `/api/*`
 - [ ] Decide: one private list per user, or shared household lists
@@ -60,6 +60,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | One delegated click listener for Remove buttons | One listener instead of one closure per row |
 | Two Workers from one codebase (`nutrition-app` and `nutrition-demo`) with separate D1 databases | Access on `workers.dev` protects a whole Worker URL and a `/demo` path bypass could not be confirmed there. Separate Workers need no path rules and the public demo has no binding to real data. |
 | `DEMO_ONLY` var makes every items route the sandbox | The front end needs no change: `/` on the demo Worker calls `/api/items`, which is the sandbox there |
+| Verify the Access JWT header in the Worker instead of using `ctx.access` | Workers with static assets run behind an internal router that doesn't pass `ctx.access`; the signed `Cf-Access-Jwt-Assertion` header is still available |
 | Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
 
 ---
@@ -158,3 +159,13 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Verified live: static files, demo seeding/add/validation/origin checks, real app returns 401, and the real database holds no demo data. Removed 7 sandbox rows my own live tests had written to the real database before the split.
 - Not yet done: Cloudflare Access on `nutrition-app`; real-browser verification.
 - Minor bump: new capability (production deployment and separate demo).
+
+### v0.4.1 — 2026-10-12 — Cloudflare Access enabled on the real app
+
+- Completed Zero Trust setup (Free plan) and protected `nutrition-app` with an Access application (All traffic, allow list: owner email).
+- `wrangler.toml`: set `TEAM_DOMAIN` (`https://broken-recipe-57bc.cloudflareaccess.com`) and `POLICY_AUD`; redeployed `nutrition-app`.
+- The AUD tag was read from the Access login redirect (`kid` parameter and the `aud` claim of the `meta` token agreed).
+- Verified from outside: `/` and `/api/items` on the real app redirect to the Access login (302); a forged `Cf-Access-Jwt-Assertion` header is still blocked (302); the demo Worker remains public (200).
+- Corrected the README Access steps (the setting is the Worker's **Access** tab, not Settings → Domains & Routes).
+- Not yet confirmed by an interactive login in a real browser; tracked under Upcoming.
+- Patch bump: configuration of an existing capability, no code change.

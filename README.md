@@ -2,7 +2,7 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: deployed, Access login pending (v0.4.0).** The public demo is live at https://nutrition-demo.rodesignedthat.workers.dev. The real app is deployed at https://nutrition-app.rodesignedthat.workers.dev and returns 401 until Cloudflare Access is configured. See [DEVLOG.md](DEVLOG.md) for what's planned and the full change history.
+> **Status: deployed (v0.4.1).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). The public demo is at https://nutrition-demo.rodesignedthat.workers.dev.
 
 ## Features
 
@@ -130,12 +130,14 @@ npm run deploy        # real app (nutrition-app)
 npm run deploy:demo   # public demo (nutrition-demo)
 ```
 
-Protect the real app with Cloudflare Access:
+Protect the real app with Cloudflare Access (one-time):
 
-1. Cloudflare dashboard → **Workers & Pages** → `nutrition-app` → **Settings** → **Domains & Routes** → on the `workers.dev` route, enable **Cloudflare Access**.
-2. In **Zero Trust → Access → Applications**, open the generated application and make sure its policy allows only your email.
-3. Copy the application's **AUD tag** and your Zero Trust **team domain** (`https://<team>.cloudflareaccess.com`) into `POLICY_AUD` and `TEAM_DOMAIN` in `wrangler.toml`, then `npm run deploy` again.
+1. Complete **Zero Trust** setup (Free plan) if you haven't; note your team name (`<team>.cloudflareaccess.com`).
+2. Dashboard → **Workers & Pages** → `nutrition-app` → **Access** tab → **Protect this Worker behind Access** → **All traffic**, with an **Allow** policy for your email.
+3. Put your team domain in `TEAM_DOMAIN` and the application's **AUD tag** in `POLICY_AUD` in `wrangler.toml`, then `npm run deploy`. The AUD tag is under Zero Trust → Access → Applications → the app → Overview (it is also the `kid` value in the login redirect URL).
 4. Do **not** enable Access on `nutrition-demo`.
+
+The Worker verifies the signed `Cf-Access-Jwt-Assertion` header itself rather than relying on `ctx.access`, because Workers with static assets don't receive `ctx.access`.
 
 Optional: add a Cloudflare **rate limiting rule** on the demo Worker's `/api/*`.
 

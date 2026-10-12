@@ -24,8 +24,8 @@ migrations_dir = "migrations"
 crons = ["0 4 * * *"]
 
 [vars]
-TEAM_DOMAIN = "https://REPLACE_WITH_TEAM_NAME.cloudflareaccess.com"
-POLICY_AUD  = "REPLACE_WITH_ACCESS_APPLICATION_AUD_TAG"
+TEAM_DOMAIN = "https://broken-recipe-57bc.cloudflareaccess.com"
+POLICY_AUD  = "c3ee1073f484f22074f5acfbbb465c5383ed4278d8e93312a9b5548ee98f3aa5"
 
 # ---------- Public demo (deploy with: npm run deploy:demo) ----------
 # Bindings and vars are not inherited by environments, so they are repeated here.
