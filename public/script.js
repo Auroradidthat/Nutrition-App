@@ -1,21 +1,23 @@
-//GRABS ELEMENTS AND PLACES IN AN ARRAY
+import { MAX_NAME_LENGTH, MIN_QUANTITY, MAX_QUANTITY, validateItem } from "/rules.js";
+
+//GRABS ELEMENTS
 const form = document.getElementById("add-form");
 const input = document.getElementById("item-input");
-const list = document.getElementById("grocery-list");
+const list = document.getElementById("item-list");
 const quantityInput = document.getElementById("quantity-input");
 const addBtn = document.getElementById("add-btn");
 const statusEl = document.getElementById("status");
 
+//INPUT LIMITS COME FROM THE SHARED RULES, SO THE HTML NEVER DRIFTS FROM THE SERVER
+input.maxLength = MAX_NAME_LENGTH;
+quantityInput.min = MIN_QUANTITY;
+quantityInput.max = MAX_QUANTITY;
+
 let items = [];
 
 //PICKS THE API: /demo USES THE PUBLIC SANDBOX, EVERYTHING ELSE USES THE LOGGED-IN API
-const isDemo = location.pathname.startsWith("/demo");
+const isDemo = /^\/demo(\/|$)/.test(location.pathname);
 const API = isDemo ? "/api/demo/items" : "/api/items";
-
-//ALLOWLIST FOR ITEM NAMES (the server enforces the same rule)
-//letters (any language), combining accent marks, numbers, spaces, and: ' ’ & , . - % ( ) /
-const ALLOWED_NAME = /^[\p{L}\p{M}\p{N} '’&,.\-%()/]+$/u;
-const NAME_ERROR = "Item names can only use letters, numbers, spaces and ' & , . - % ( ) /";
 
 //TALKS TO THE API. RETURNS THE JSON BODY OR THROWS AN ERROR WITH A READABLE MESSAGE
 async function api(path = "", options = {}) {
@@ -35,41 +37,51 @@ async function api(path = "", options = {}) {
     return body;
 }
 
-//BUILDS A ROW CONTAINING TEXT, QUANTITY AND A REMOVE BUTTON
+function setStatus(message) {
+    statusEl.textContent = message;
+}
+
+//RUNS AN ACTION, CLEARS THE STATUS ON SUCCESS AND SHOWS THE ERROR ON FAILURE
+async function run(action) {
+    try {
+        await action();
+        setStatus("");
+    } catch (err) {
+        setStatus(err.message);
+    }
+}
+
+//BUILDS ONE ROW CONTAINING TEXT, QUANTITY AND A REMOVE BUTTON
+function createRow(item) {
+    const li = document.createElement("li");
+
+    const text = document.createElement("span");
+    text.textContent = item.text;
+
+    const qty = document.createElement("span");
+    qty.className = "item-qty";
+    qty.textContent = `×${item.quantity}`;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = "Remove";
+    removeBtn.dataset.id = item.id;
+
+    li.append(text, qty, removeBtn);
+    return li;
+}
+
 function render() {
-    list.replaceChildren();
-
-    items.forEach((item) => {
-        const li = document.createElement("li");
-
-        const text = document.createElement("span");
-        text.textContent = item.text;
-
-        //ADDS QUANTITY NUMBER TO EACH LINE
-        const qty = document.createElement("span");
-        qty.className = "item-qty";
-        qty.textContent = `×${item.quantity}`;
-
-        const removeBtn = document.createElement("button");
-        removeBtn.type = "button";
-        removeBtn.textContent = "Remove";
-        removeBtn.addEventListener("click", () => removeItem(item.id));
-
-        li.append(text, qty, removeBtn);
-        list.appendChild(li);
-    });
+    list.replaceChildren(...items.map(createRow));
 }
 
 //LOADS THE SAVED LIST FROM THE SERVER
 async function loadItems() {
-    statusEl.textContent = "Loading your list...";
-    try {
+    setStatus("Loading your list...");
+    await run(async () => {
         items = await api();
-        statusEl.textContent = "";
         render();
-    } catch (err) {
-        statusEl.textContent = err.message;
-    }
+    });
 }
 
 //ADDS AN ITEM WITH A NAME AND A QUANTITY (SAVED ON THE SERVER)
@@ -78,49 +90,39 @@ async function addItem(event) {
     const text = input.value.trim();
     if (text === "") return;
 
-    if (!ALLOWED_NAME.test(text)) {
-        statusEl.textContent = NAME_ERROR;
-        return;
-    }
-
     const quantity = Number(quantityInput.value);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-        statusEl.textContent = "Quantity must be a whole number between 1 and 99.";
+    const error = validateItem(text, quantity);
+    if (error) {
+        setStatus(error);
         return;
     }
 
     addBtn.disabled = true;               // prevents double submits while saving
-    try {
-        const saved = await api("", {
-            method: "POST",
-            body: JSON.stringify({ text, quantity }),
-        });
+    await run(async () => {
+        const saved = await api("", { method: "POST", body: JSON.stringify({ text, quantity }) });
         items.push(saved);                // the server assigns the id
-        statusEl.textContent = "";
         render();
-
         input.value = "";
-        quantityInput.value = 1;          // reset to default
-    } catch (err) {
-        statusEl.textContent = err.message;
-    } finally {
-        addBtn.disabled = false;
-        input.focus();
-    }
+        quantityInput.value = MIN_QUANTITY;
+    });
+    addBtn.disabled = false;
+    input.focus();
 }
 
-//REMOVE ITEM IF NEEDED (DELETED ON THE SERVER FIRST)
-async function removeItem(id) {
-    try {
+//REMOVES AN ITEM (DELETED ON THE SERVER FIRST)
+function removeItem(id) {
+    return run(async () => {
         await api(`/${id}`, { method: "DELETE" });
         items = items.filter((item) => item.id !== id);
-        statusEl.textContent = "";
         render();
-    } catch (err) {
-        statusEl.textContent = err.message;
-    }
+    });
 }
 
-//SUBMIT ITEMS
+//ONE CLICK LISTENER FOR EVERY REMOVE BUTTON
+list.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-id]");
+    if (button) removeItem(Number(button.dataset.id));
+});
+
 form.addEventListener("submit", addItem);
 loadItems();

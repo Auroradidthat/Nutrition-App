@@ -1,20 +1,69 @@
-// Grocery list API.
+// Nutrition App API.
 //   /api/items       -> real users, identity comes from Cloudflare Access
 //   /api/demo/items  -> public sandbox, identity comes from a random cookie
 // Both share the same handlers; only the `owner` value differs.
 
-const MAX_TEXT_LENGTH = 100;
-const MIN_QUANTITY = 1;
-const MAX_QUANTITY = 99;
-// Keep in sync with ALLOWED_NAME in public/script.js.
-// Letters (any language), combining marks, numbers, spaces, and: ' ’ & , . - % ( ) /
-const ALLOWED_NAME = /^[\p{L}\p{M}\p{N} '’&,.\-%()/]+$/u;
-const MAX_ITEMS_PER_DEMO = 50;
+import { validateItem } from "../public/rules.js";
+import { getUser } from "./auth.js";
+import {
+  DEMO_PREFIX,
+  DEMO_SEED,
+  MAX_ITEMS_PER_DEMO,
+  demoCookie,
+  demoOwner,
+  getDemoSession,
+} from "./demo.js";
+import { json, readJson, sameOrigin } from "./http.js";
+import * as store from "./store.js";
+
 const MAX_ITEMS_PER_USER = 500;
-const DEMO_COOKIE = "demo_sid";
-const DEMO_TTL_SECONDS = 60 * 60 * 24;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const DEMO_SEED = ["Milk", "Eggs", "Bread"];
+
+// ---------- Handlers ----------
+// Each receives { request, db, owner, itemId, limit } and returns a Response.
+
+async function listItems({ db, owner }) {
+  return json(await store.list(db, owner));
+}
+
+// POST /items  { text, quantity? }
+async function createItem({ request, db, owner, limit }) {
+  const body = await readJson(request);
+  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  const quantity = body?.quantity === undefined ? 1 : body.quantity;
+
+  const error = validateItem(text, quantity);
+  if (error) return json({ error }, 400);
+
+  if ((await store.count(db, owner)) >= limit) return json({ error: "List is full" }, 409);
+
+  return json(await store.create(db, owner, { text, quantity }), 201);
+}
+
+// PATCH /items/:id  { done }
+async function updateItem({ request, db, owner, itemId }) {
+  const body = await readJson(request);
+  if (typeof body?.done !== "boolean") return json({ error: "done must be a boolean" }, 400);
+
+  const item = await store.setDone(db, owner, itemId, body.done);
+  return item ? json(item) : json({ error: "Not found" }, 404);
+}
+
+// DELETE /items/:id
+async function deleteItem({ db, owner, itemId }) {
+  return (await store.remove(db, owner, itemId))
+    ? json({ ok: true })
+    : json({ error: "Not found" }, 404);
+}
+
+// "<METHOD> <collection|item>" -> handler
+const HANDLERS = {
+  "GET collection": listItems,
+  "POST collection": createItem,
+  "PATCH item": updateItem,
+  "DELETE item": deleteItem,
+};
+
+// ---------- Worker ----------
 
 export default {
   async fetch(request, env) {
@@ -25,234 +74,48 @@ export default {
     const isDemo = Boolean(route[1]);
     const itemId = route[2] ? Number(route[2]) : null;
 
-    // Mutating requests must come from our own origin (CSRF defence).
+    const handler = HANDLERS[`${request.method} ${itemId === null ? "collection" : "item"}`];
+    if (!handler) return json({ error: "Method not allowed" }, 405);
+
     if (request.method !== "GET" && !sameOrigin(request, url)) {
       return json({ error: "Forbidden" }, 403);
     }
 
-    // The owner is ALWAYS derived server-side, never taken from the client.
-    let owner;
-    let setCookie = null;
-    let seed = false;
-
-    if (isDemo) {
-      const session = getDemoSession(request);
-      owner = `demo:${session.sid}`;
-      seed = session.isNew;
-      if (session.isNew) setCookie = demoCookie(session.sid);
-    } else {
-      const email = await getAccessUser(request, env);
-      if (!email) return json({ error: "Unauthorized" }, 401);
-      owner = email;
-    }
-
-    const ctx = {
-      db: env.DB,
-      owner,
-      itemId,
-      limit: isDemo ? MAX_ITEMS_PER_DEMO : MAX_ITEMS_PER_USER,
-      seed,
-    };
-
-    let response;
     try {
-      response = await handle(request, ctx);
+      // The owner is ALWAYS derived server-side, never taken from the client.
+      let owner;
+      let setCookie = null;
+
+      if (isDemo) {
+        const session = getDemoSession(request);
+        owner = demoOwner(session.sid);
+        if (session.isNew) {
+          await store.seed(env.DB, owner, DEMO_SEED);
+          setCookie = demoCookie(session.sid);
+        }
+      } else {
+        owner = await getUser(request, env, url);
+        if (!owner) return json({ error: "Unauthorized" }, 401);
+      }
+
+      const response = await handler({
+        request,
+        db: env.DB,
+        owner,
+        itemId,
+        limit: isDemo ? MAX_ITEMS_PER_DEMO : MAX_ITEMS_PER_USER,
+      });
+
+      if (setCookie) response.headers.append("Set-Cookie", setCookie);
+      return response;
     } catch (err) {
       console.error(err);
-      response = json({ error: "Server error" }, 500);
+      return json({ error: "Server error" }, 500);
     }
-
-    if (setCookie) response.headers.append("Set-Cookie", setCookie);
-    return response;
   },
 
   // Cron trigger: remove demo data older than the session lifetime.
   async scheduled(_event, env) {
-    await env.DB.prepare(
-      "DELETE FROM items WHERE owner LIKE 'demo:%' AND created_at < datetime('now', '-1 day')"
-    ).run();
+    await store.purgeExpired(env.DB, DEMO_PREFIX);
   },
 };
-
-// ---------- Shared handlers ----------
-
-async function handle(request, { db, owner, itemId, limit, seed }) {
-  const method = request.method;
-
-  // GET /items
-  if (method === "GET" && itemId === null) {
-    if (seed) {
-      await db.batch(
-        DEMO_SEED.map((t) =>
-          db.prepare("INSERT INTO items (owner, text) VALUES (?, ?)").bind(owner, t)
-        )
-      );
-    }
-    const { results } = await db
-      .prepare("SELECT id, text, quantity, done FROM items WHERE owner = ? ORDER BY id")
-      .bind(owner)
-      .all();
-    return json(results.map(toItem));
-  }
-
-  // POST /items  { text, quantity? }
-  if (method === "POST" && itemId === null) {
-    const body = await readJson(request);
-    const text = typeof body?.text === "string" ? body.text.trim() : "";
-    if (!text) return json({ error: "Text is required" }, 400);
-    if (text.length > MAX_TEXT_LENGTH) {
-      return json({ error: `Text must be ${MAX_TEXT_LENGTH} characters or fewer` }, 400);
-    }
-    if (!ALLOWED_NAME.test(text)) {
-      return json(
-        { error: "Item names can only use letters, numbers, spaces and ' & , . - % ( ) /" },
-        400
-      );
-    }
-
-    // Quantity is optional (defaults to 1) but must be a whole number in range.
-    const quantity = body.quantity === undefined ? 1 : body.quantity;
-    if (!Number.isInteger(quantity) || quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
-      return json(
-        { error: `Quantity must be a whole number from ${MIN_QUANTITY} to ${MAX_QUANTITY}` },
-        400
-      );
-    }
-
-    const count = await db
-      .prepare("SELECT COUNT(*) AS n FROM items WHERE owner = ?")
-      .bind(owner)
-      .first("n");
-    if (count >= limit) return json({ error: "List is full" }, 409);
-
-    const row = await db
-      .prepare(
-        "INSERT INTO items (owner, text, quantity) VALUES (?, ?, ?) RETURNING id, text, quantity, done"
-      )
-      .bind(owner, text, quantity)
-      .first();
-    return json(toItem(row), 201);
-  }
-
-  // PATCH /items/:id  { done }
-  if (method === "PATCH" && itemId !== null) {
-    const body = await readJson(request);
-    if (typeof body?.done !== "boolean") return json({ error: "done must be a boolean" }, 400);
-
-    const row = await db
-      .prepare(
-        "UPDATE items SET done = ? WHERE id = ? AND owner = ? RETURNING id, text, quantity, done"
-      )
-      .bind(body.done ? 1 : 0, itemId, owner)
-      .first();
-    return row ? json(toItem(row)) : json({ error: "Not found" }, 404);
-  }
-
-  // DELETE /items/:id
-  if (method === "DELETE" && itemId !== null) {
-    const result = await db
-      .prepare("DELETE FROM items WHERE id = ? AND owner = ?")
-      .bind(itemId, owner)
-      .run();
-    return result.meta.changes > 0 ? json({ ok: true }) : json({ error: "Not found" }, 404);
-  }
-
-  return json({ error: "Method not allowed" }, 405);
-}
-
-// ---------- Auth: Cloudflare Access ----------
-
-// Verifies the signed JWT Access attaches to every request and returns the
-// user's email, or null. In `wrangler dev` (no Access) DEV_USER is used.
-async function getAccessUser(request, env) {
-  if (env.DEV_USER) return env.DEV_USER;
-
-  const token = request.headers.get("Cf-Access-Jwt-Assertion");
-  if (!token) return null;
-
-  try {
-    const [h, p, s] = token.split(".");
-    if (!h || !p || !s) return null;
-
-    const header = JSON.parse(b64urlToString(h));
-    const payload = JSON.parse(b64urlToString(p));
-    if (header.alg !== "RS256") return null;
-
-    const now = Math.floor(Date.now() / 1000);
-    if (typeof payload.exp !== "number" || payload.exp < now) return null;
-    if (payload.iss !== env.TEAM_DOMAIN) return null;
-    const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-    if (!aud.includes(env.POLICY_AUD)) return null;
-
-    const certs = await fetch(`${env.TEAM_DOMAIN}/cdn-cgi/access/certs`, {
-      cf: { cacheTtl: 3600, cacheEverything: true },
-    }).then((r) => r.json());
-    const jwk = certs.keys.find((k) => k.kid === header.kid);
-    if (!jwk) return null;
-
-    const key = await crypto.subtle.importKey(
-      "jwk",
-      jwk,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-    const valid = await crypto.subtle.verify(
-      "RSASSA-PKCS1-v1_5",
-      key,
-      b64urlToBytes(s),
-      new TextEncoder().encode(`${h}.${p}`)
-    );
-    return valid && payload.email ? payload.email : null;
-  } catch {
-    return null;
-  }
-}
-
-// ---------- Demo sessions ----------
-
-function getDemoSession(request) {
-  const cookies = request.headers.get("Cookie") || "";
-  const match = cookies.match(new RegExp(`(?:^|;\\s*)${DEMO_COOKIE}=([^;]+)`));
-  if (match && UUID_RE.test(match[1])) return { sid: match[1], isNew: false };
-  return { sid: crypto.randomUUID(), isNew: true };
-}
-
-function demoCookie(sid) {
-  return `${DEMO_COOKIE}=${sid}; Path=/; Max-Age=${DEMO_TTL_SECONDS}; HttpOnly; Secure; SameSite=Lax`;
-}
-
-// ---------- Helpers ----------
-
-function sameOrigin(request, url) {
-  const origin = request.headers.get("Origin");
-  return origin === null || origin === url.origin;
-}
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return null;
-  }
-}
-
-function toItem(row) {
-  return { id: row.id, text: row.text, quantity: row.quantity, done: Boolean(row.done) };
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-  });
-}
-
-function b64urlToBytes(str) {
-  const b64 = str.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(str.length / 4) * 4, "=");
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-}
-
-function b64urlToString(str) {
-  return new TextDecoder().decode(b64urlToBytes(str));
-}

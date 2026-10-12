@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nutrition App</title>
   <link rel="stylesheet" href="/styles.css">
-  <script src="/script.js" defer></script>
+  <script type="module" src="/script.js"></script>
 </head>
 <body>
     <header>
@@ -13,32 +13,27 @@
             <a href="/demo">Demo</a>
         </nav>
     </header>
+
     <main>
         <section>
-            <div>
-                <h1>Nutrition App</h1>
-                <!--GROCERY LIST PROPAGATES HERE-->
-                <ul id="grocery-list" class="grocery-list"></ul>
-            </div>
+            <h1>Nutrition App</h1>
+            <!--THE LIST IS RENDERED HERE BY script.js-->
+            <ul id="item-list"></ul>
         </section>
-        <!--END Grocery List Display-->
 
-        <!--BEGIN Grocery List Input-->
         <section>
             <form id="add-form">
                 <label for="item-input">Add Grocery Item:</label>
-                <input type="text" id="item-input" placeholder="e.g. Milk" maxlength="100" autocomplete="off">
-                <label for="quantity-input"> Item Quantity:</label>
-                <input type="number" id="quantity-input" value="1" min="1" max="99" inputmode="numeric">
+                <input type="text" id="item-input" placeholder="e.g. Milk" autocomplete="off">
+                <label for="quantity-input">Item Quantity:</label>
+                <input type="number" id="quantity-input" value="1" inputmode="numeric">
                 <button type="submit" id="add-btn">Add to list</button>
             </form>
         </section>
-        <!--END Grocery List Input-->
+
         <section>
-            <!--ERRORS APPEAR HERE-->
-            <div>
-                <p id="status" role="status"></p>
-            </div>
+            <!--ERRORS AND MESSAGES APPEAR HERE-->
+            <p id="status" role="status"></p>
         </section>
     </main>
 </body>

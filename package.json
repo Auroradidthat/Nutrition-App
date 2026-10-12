@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "dev:container": "npm run db:migrate:local && wrangler dev --ip 0.0.0.0 --port 8787",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply nutrition-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply nutrition-db --remote"
@@ -10,5 +11,5 @@
   "devDependencies": {
     "wrangler": "^4.0.0"
   },
-  "version": "0.3.1"
+  "version": "0.3.2"
 }

@@ -30,12 +30,12 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - [ ] Deploy Worker + D1, configure Cloudflare Access and the `/demo` bypass
 - [ ] Rate limiting rule on `/api/demo/*`
 - [ ] Decide: one private list per user, or shared household lists
+- [ ] Automated tests for `public/rules.js` and `src/store.js`
 - [ ] Reword placeholder text and labels from "grocery" to nutrition theme
 
 ## Known issues
 
 - The front end can no longer be opened as a plain file or via Live Server; it needs `npm run dev`.
-- Desktop layout: `#add-form input { flex: 1 }` also stretches the quantity input.
 - `npm` reports v9.6.1 under Node 24, suggesting a stale global npm on PATH. Not blocking.
 
 ## Decisions
@@ -53,6 +53,10 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | Absolute asset paths in `index.html` (`/script.js`) | The app is now always served by the Worker, and absolute paths keep `/demo/` working. (Earlier, relative paths were used so the page worked via `file://`.) |
 | Save to the server before updating the UI | The server assigns IDs and is the source of truth; failures show a message instead of a list that silently diverges |
 | Disable the Add button while saving | Prevents duplicate items from double taps |
+| Validation rules live in one file, `public/rules.js`, imported by both the Worker and the browser | The same regex and limits were duplicated in three places and kept in sync by a comment |
+| `DEV_USER` honoured only on localhost hostnames | A stray production variable can no longer silently bypass authentication; fails closed |
+| Worker split into `auth`, `demo`, `store`, `http` modules | `index.js` is routing and handlers only; SQL and auth are isolated and easier to test |
+| One delegated click listener for Remove buttons | One listener instead of one closure per row |
 | Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
 
 ---
@@ -126,3 +130,17 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Verified: image builds, `/`, `/demo` and the API respond, validation works, and data survives a container restart.
 - README gained a "With Docker" section.
 - Patch bump: tooling only, no change to app behaviour.
+
+### v0.3.2 — 2026-10-11 — Refactor (no behaviour change)
+
+- **Shared rules:** new `public/rules.js` holds the name allowlist, length and quantity limits and a pure `validateItem()`. Both `script.js` and the Worker use it; the input `min`/`max`/`maxlength` are set from it in JS instead of hardcoded in the HTML.
+- **Worker split:** `src/index.js` is now routing plus four small handlers (`listItems`, `createItem`, `updateItem`, `deleteItem`) looked up from a table. SQL moved to `src/store.js` (column list defined once), auth to `src/auth.js`, demo sessions to `src/demo.js`, helpers to `src/http.js`. `DEMO_PREFIX` replaces the duplicated `'demo:'` strings.
+- **Security hardening:** `DEV_USER` is ignored unless the request host is local, so a misconfigured production variable cannot bypass authentication.
+- **script.js:** `setStatus`, `run` (try/catch wrapper), `createRow`, and one delegated Remove listener; now an ES module. Demo detection matches `/demo` and `/demo/...` only.
+- **CSS:** custom properties for tap size, gap, radius, border and danger colour; the quantity field no longer stretches on desktop (fixes a known issue); list styled by `#item-list`.
+- **HTML:** removed empty wrappers and stale comments; list id is now `item-list`.
+- **Docker/npm:** new `dev:container` script is the single source for the migrate-then-serve command; the Dockerfile runs it.
+- **Docs:** README structure updated; the roadmap now lives only in DEVLOG.
+- **Small visible changes:** validation messages are now identical in the browser and API (e.g. "Quantity must be a whole number from 1 to 99."); a new demo session is seeded on its first request of any method, not only GET; unsupported methods return 405 before authentication.
+- Verified against the running container: 30+ API checks (validation, ownership, 401/403/404/405, host guard, demo, cron handler) and the real `script.js` module run against the live API for `/` and `/demo`. Not yet verified in a real browser.
+- Patch bump: internal change, no new capability.

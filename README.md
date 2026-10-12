@@ -2,7 +2,7 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: in development (v0.3.0).** The front end is connected to the Worker API and works end to end locally. It has not been deployed yet. See [Roadmap](#roadmap) and [DEVLOG.md](DEVLOG.md).
+> **Status: in development (v0.3.2).** The front end is connected to the Worker API and works end to end locally. It has not been deployed yet. See [DEVLOG.md](DEVLOG.md) for what's planned and the full change history.
 
 ## Features
 
@@ -25,15 +25,23 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 
 ```
 .
-├── public/                  # Static front end
+├── public/                  # Static front end (served as-is)
 │   ├── index.html
-│   ├── script.js
+│   ├── script.js            # UI: talks to the API, renders the list
+│   ├── rules.js             # Validation rules, shared by browser and Worker
 │   └── styles.css
-├── src/index.js             # Worker: API, auth, demo sessions, cron cleanup
+├── src/                     # Cloudflare Worker
+│   ├── index.js             # Routing and request handlers
+│   ├── auth.js              # Cloudflare Access JWT verification
+│   ├── demo.js              # Demo session cookie and seed data
+│   ├── store.js             # All D1 queries
+│   └── http.js              # json / readJson / sameOrigin helpers
 ├── migrations/              # D1 schema migrations (applied in order)
 │   ├── 0001_init.sql
 │   └── 0002_add_quantity.sql
 ├── wrangler.toml            # Cloudflare config
+├── Dockerfile
+├── docker-compose.yml
 ├── package.json
 ├── README.md
 └── DEVLOG.md                # Running log of changes and decisions
@@ -75,7 +83,7 @@ Locally there is no Cloudflare Access in front of the Worker, so `.dev.vars` sup
 DEV_USER=dev@example.com
 ```
 
-`.dev.vars` is gitignored and must never be set in production.
+`DEV_USER` is only honoured when the request host is `localhost`, `127.0.0.1`, `0.0.0.0` or `[::1]`; on any other host it is ignored and Access authentication is required. `.dev.vars` is gitignored and must never be set in production.
 
 ## API
 
@@ -90,7 +98,7 @@ All routes return JSON. `owner` is always derived server-side and is never accep
 
 The same four routes exist under `/api/demo/items` for the public demo, identified by a random cookie instead of a login.
 
-**Validation rules**
+**Validation rules** (defined once in `public/rules.js` and used by both the browser and the Worker)
 - `text`: required, up to 100 characters, must match the allowlist
 - `quantity`: whole number from 1 to 99
 - List size: 500 items per user, 50 per demo session
@@ -114,14 +122,7 @@ The same four routes exist under `/api/demo/items` for the public demo, identifi
 
 ## Roadmap
 
-- [x] Connect `public/script.js` to the API (v0.3.0)
-- [x] `/demo` detection in the front end (v0.3.0)
-- [ ] Demo banner so visitors know they're in the sandbox
-- [ ] Per-item done/check-off in the UI (API already supports it)
-- [ ] `−` / `+` buttons for quantity
-- [ ] Deploy and configure Access
-- [ ] Rate limiting for the demo routes
-- [ ] Offline support / PWA manifest
+Planned work and known issues are tracked in [DEVLOG.md](DEVLOG.md) under **Upcoming** and **Known issues**.
 
 ## Versioning
 

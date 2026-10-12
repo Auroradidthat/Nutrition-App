@@ -13,6 +13,7 @@ COPY . .
 ENV WRANGLER_SEND_METRICS=false
 EXPOSE 8787
 
-# Apply migrations to the local D1 database, then serve on all interfaces
+# Applies migrations to the local D1 database, then serves on all interfaces
 # (inside the container, 127.0.0.1 would not be reachable from the host).
-CMD ["sh", "-c", "npx wrangler d1 migrations apply nutrition-db --local && npx wrangler dev --ip 0.0.0.0 --port 8787"]
+# See the "dev:container" script in package.json.
+CMD ["npm", "run", "dev:container"]

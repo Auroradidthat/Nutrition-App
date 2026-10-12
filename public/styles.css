@@ -1,3 +1,11 @@
+:root {
+    --tap-size: 44px;          /* minimum comfortable touch target */
+    --gap: 0.5rem;
+    --radius: 0.5rem;
+    --border: 1px solid #ccc;
+    --danger: red;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -22,7 +30,7 @@ nav {
 nav a {
     display: flex;
     color: black;
-    padding: 0.5rem;
+    padding: var(--gap);
     font-weight: bold;
 }
 
@@ -42,28 +50,28 @@ h1 {
 
 #status {
     min-height: 1.4em;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--gap);
 }
 
-.grocery-list {
+#item-list {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--gap);
 }
 
-.grocery-list li {
+#item-list li {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 0.5rem;
+    gap: var(--gap);
+    padding: var(--gap) 0.75rem;
+    border: var(--border);
+    border-radius: var(--radius);
     background-color: white;
 }
 
 /* Lets long unbroken names wrap instead of pushing Remove off-screen. */
-.grocery-list li span:first-child {
+#item-list li span:first-child {
     min-width: 0;
     overflow-wrap: anywhere;
 }
@@ -73,16 +81,16 @@ h1 {
     font-weight: bold;
 }
 
-.grocery-list li button:hover {
+#item-list li button:hover {
     color: white;
     font-weight: bold;
-    background-color: red;
+    background-color: var(--danger);
 }
 
 #add-form {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--gap);
     margin-top: 1.5rem;
 }
 
@@ -91,13 +99,13 @@ input[type="text"],
 input[type="number"] {
     font-size: 16px;
     padding: 0.75rem;
-    min-height: 44px;
+    min-height: var(--tap-size);
 }
 
 button {
     font-size: 1rem;
-    min-height: 44px;
-    padding: 0.5rem 1rem;
+    min-height: var(--tap-size);
+    padding: var(--gap) 1rem;
 }
 
 @media (min-width: 600px) {
@@ -106,7 +114,8 @@ button {
         align-items: center;
     }
 
-    #add-form input {
+    /* Only the name field stretches; quantity keeps its natural width. */
+    #add-form input[type="text"] {
         flex: 1;
     }
 }
