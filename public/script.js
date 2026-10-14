@@ -37,8 +37,9 @@ async function api(path = "", options = {}) {
     return body;
 }
 
-function setStatus(message) {
+function setStatus(message, isError = false) {
     statusEl.textContent = message;
+    statusEl.classList.toggle("error", isError);
 }
 
 //RUNS AN ACTION, CLEARS THE STATUS ON SUCCESS AND SHOWS THE ERROR ON FAILURE
@@ -47,7 +48,7 @@ async function run(action) {
         await action();
         setStatus("");
     } catch (err) {
-        setStatus(err.message);
+        setStatus(err.message, true);
     }
 }
 
@@ -93,7 +94,7 @@ async function addItem(event) {
     const quantity = Number(quantityInput.value);
     const error = validateItem(text, quantity);
     if (error) {
-        setStatus(error);
+        setStatus(error, true);
         return;
     }
 

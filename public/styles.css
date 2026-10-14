@@ -4,12 +4,18 @@
     --radius: 0.5rem;
     --border: 1px solid #ccc;
     --danger: red;
+    --success: green;
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Reserves scrollbar space so content doesn't slide sideways when the list grows. */
+html {
+    scrollbar-gutter: stable;
 }
 
 /* Mobile-first: base styles target small screens. */
@@ -23,7 +29,7 @@ nav {
     display: flex;
     justify-content: center;
     flex-direction: row;
-    border: solid 3px black;
+    border: solid 3px rgb(0, 0, 0);
     padding: 1rem;
 }
 
@@ -46,11 +52,17 @@ main {
 
 h1 {
     margin-bottom: 1rem;
+    color: black;
 }
 
 #status {
     min-height: 1.4em;
+    margin-top: var(--gap);
     margin-bottom: var(--gap);
+}
+
+#status.error {
+    color: var(--danger);
 }
 
 #item-list {
@@ -82,7 +94,7 @@ h1 {
 }
 
 #item-list li button:hover {
-    color: white;
+    /**color: white;**/
     font-weight: bold;
     background-color: var(--danger);
 }
@@ -91,7 +103,6 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: var(--gap);
-    margin-top: 1.5rem;
 }
 
 /* 16px input font prevents iOS Safari from zooming on focus. */
@@ -108,14 +119,33 @@ button {
     padding: var(--gap) 1rem;
 }
 
+button:hover {
+    color: white;
+    background-color: var(--success);
+}
+
 @media (min-width: 600px) {
     #add-form {
         flex-direction: row;
         align-items: center;
     }
 
-    /* Only the name field stretches; quantity keeps its natural width. */
+    /* Labels and button keep one line so their size doesn't depend on the row width. */
+    #add-form label,
+    #add-form button {
+        white-space: nowrap;
+        flex: none;
+    }
+
+    /* Only the name field stretches; min-width: 0 lets it shrink instead of overflowing. */
     #add-form input[type="text"] {
         flex: 1;
+        min-width: 0;
+    }
+
+    /* Fixed width so the quantity box is the same at every window size. */
+    #add-form input[type="number"] {
+        flex: none;
+        width: 5rem;
     }
 }
