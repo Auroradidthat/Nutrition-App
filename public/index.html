@@ -10,7 +10,7 @@
 <body>
     <header>
         <nav>
-            <a href="/demo">Demo</a>
+            <a href="about.html">About This Project</a>
         </nav>
     </header>
 
@@ -26,6 +26,7 @@
                     quibusdam eiusmod dolores lorem
                 </p>
             </div>
+            <!--ADD ITEMS AND QUANTITY TO LIST-->
             <div>
                 <form id="add-form">
                     <label for="item-input">Add Grocery Item:</label>
@@ -34,6 +35,8 @@
                     <input type="number" id="quantity-input" value="1" inputmode="numeric">
                     <button type="submit" id="add-btn">Add to list</button>
                 </form>
+
+                <!--LIST ITEMS AND ERROR MESSAGES-->
                 <div>
                     <p id="status" role="status"></p>
                     <ul id="item-list"></ul>
