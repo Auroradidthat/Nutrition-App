@@ -44,19 +44,3 @@ export async function remove(db, owner, id) {
     .run();
   return result.meta.changes > 0;
 }
-
-export function seed(db, owner, names) {
-  return db.batch(
-    names.map((text) =>
-      db.prepare("INSERT INTO items (owner, text) VALUES (?, ?)").bind(owner, text)
-    )
-  );
-}
-
-// Deletes demo rows older than a day (called from the cron trigger).
-export function purgeExpired(db, ownerPrefix) {
-  return db
-    .prepare("DELETE FROM items WHERE owner LIKE ? AND created_at < datetime('now', '-1 day')")
-    .bind(`${ownerPrefix}%`)
-    .run();
-}

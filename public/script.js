@@ -15,9 +15,7 @@ quantityInput.max = MAX_QUANTITY;
 
 let items = [];
 
-//PICKS THE API: /demo USES THE PUBLIC SANDBOX, EVERYTHING ELSE USES THE LOGGED-IN API
-const isDemo = /^\/demo(\/|$)/.test(location.pathname);
-const API = isDemo ? "/api/demo/items" : "/api/items";
+const API = "/api/items";
 
 //TALKS TO THE API. RETURNS THE JSON BODY OR THROWS AN ERROR WITH A READABLE MESSAGE
 async function api(path = "", options = {}) {

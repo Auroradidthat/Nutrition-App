@@ -24,12 +24,10 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 
 ## Upcoming
 
-- [ ] Demo banner so visitors know they're in the sandbox
 - [ ] Quantity `−` / `+` buttons (replaces the tiny native spinner)
 - [ ] Check-off (done) toggle in the UI
 - [ ] Check the deployed apps on a phone (the desktop login is confirmed)
 - [ ] Verify the deployed apps in a real browser (desktop and phone)
-- [ ] Rate limiting rule on the demo Worker's `/api/*`
 - [ ] Decide: one private list per user, or shared household lists
 - [ ] Automated tests for `public/rules.js` and `src/store.js`
 - [ ] Reword placeholder text and labels from "grocery" to nutrition theme
@@ -45,21 +43,18 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 |---|---|
 | Cloudflare Workers + D1 for the back end | Needs cross-device storage; no separate server to host; generous free tier |
 | Cloudflare Access for login | No password handling or auth code to maintain |
-| Public `/demo` with per-visitor cookie sandbox | Interviewers can try the app with no account, without touching real data |
 | Allowlist (not blocklist) for item names | Safer and simpler than enumerating bad characters |
 | Apostrophe allowed in names | Real items need it ("Reese's"); safe because queries use bound parameters |
 | `"` not allowed in names | Closes off attribute/injection edge cases; users can write "inch" |
 | Same allowlist enforced in browser and Worker | Browser check is only for UX; the Worker is the real enforcement |
 | Quantity capped at 1–99, integers only | Simple, realistic range; rejects `0`, negatives, decimals, strings |
-| Absolute asset paths in `index.html` (`/script.js`) | The app is now always served by the Worker, and absolute paths keep `/demo/` working. (Earlier, relative paths were used so the page worked via `file://`.) |
+| Absolute asset paths in `index.html` (`/script.js`) | The app is always served by the Worker, so absolute paths work from any URL. (Earlier, relative paths were used so the page worked via `file://`.) |
 | Save to the server before updating the UI | The server assigns IDs and is the source of truth; failures show a message instead of a list that silently diverges |
 | Disable the Add button while saving | Prevents duplicate items from double taps |
 | Validation rules live in one file, `public/rules.js`, imported by both the Worker and the browser | The same regex and limits were duplicated in three places and kept in sync by a comment |
 | `DEV_USER` honoured only on localhost hostnames | A stray production variable can no longer silently bypass authentication; fails closed |
-| Worker split into `auth`, `demo`, `store`, `http` modules | `index.js` is routing and handlers only; SQL and auth are isolated and easier to test |
+| Worker split into `auth`, `store`, `http` modules | `index.js` is routing and handlers only; SQL and auth are isolated and easier to test |
 | One delegated click listener for Remove buttons | One listener instead of one closure per row |
-| Two Workers from one codebase (`nutrition-app` and `nutrition-demo`) with separate D1 databases | Access on `workers.dev` protects a whole Worker URL and a `/demo` path bypass could not be confirmed there. Separate Workers need no path rules and the public demo has no binding to real data. |
-| `DEMO_ONLY` var makes every items route the sandbox | The front end needs no change: `/` on the demo Worker calls `/api/items`, which is the sandbox there |
 | Verify the Access JWT header in the Worker instead of using `ctx.access` | Workers with static assets run behind an internal router that doesn't pass `ctx.access`; the signed `Cf-Access-Jwt-Assertion` header is still available |
 | Hostname-based Access application for `nutrition-app.rodesignedthat.workers.dev` instead of the Worker's own Access tab | The Worker-level application returned Blocked for the owner's email despite a matching Allow policy, and its policy evaluation couldn't be inspected. The hostname-based application worked immediately. |
 | Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
@@ -180,3 +175,13 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Documented the correct Access setup and the AUD-changes-on-recreate gotcha in the README.
 - Housekeeping: the temporary read-only API token and its file were to be deleted and revoked after diagnosis.
 - Patch bump: configuration change, no code change.
+
+### Unreleased — 2026-10-19 — Removed the public demo
+
+- The app is a single private deployment, so the separate demo and its sandbox storage were dropped.
+- Worker: removed `src/demo.js`, the `/api/demo/items` route, `DEMO_ONLY`, per-session item limits, `store.seed`, `store.purgeExpired` and the `scheduled` cron handler (it only cleaned up demo data).
+- Front end: `public/script.js` always uses `/api/items`.
+- Config: removed `[env.demo]` and the cron trigger from `wrangler.toml`, and the `deploy:demo`, `dev:demo` and `db:migrate:demo:remote` scripts from `package.json`.
+- Docs: removed demo sections from the README; trimmed demo-only entries from Upcoming and Decisions. Older History entries still mention the demo because they record what was true at the time.
+- Not done: the deployed `nutrition-demo` Worker and `nutrition-demo-db` database still exist on Cloudflare and need deleting separately. The next `npm run deploy` of `nutrition-app` will remove its cron trigger.
+- Suggested bump: minor (`0.5.0`), since a feature was removed.
