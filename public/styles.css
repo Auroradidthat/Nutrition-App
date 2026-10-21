@@ -1,5 +1,4 @@
 /*TYPEFACES*/
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Cantarell:ital,wght@0,400;0,700;1,400;1,700&family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap');
 
 :root {
@@ -33,7 +32,6 @@ body {
 nav {
     display: flex;
     justify-content: center;
-    flex-direction: row;
     border: solid 3px rgb(0, 0, 0);
     padding: 1rem;
 }
@@ -60,14 +58,16 @@ main {
 
 h1 {
     margin-bottom: 1rem;
-    color: black;
     font-family: "Google Sans Flex", sans-serif;
-    font-weight: 700;
 }
 
 p {
     font-family: "Cantarell", sans-serif;
     font-size: 20px;
+}
+
+label {
+    font-size: 1.25rem;
 }
 
 #status {
@@ -120,25 +120,57 @@ p {
     gap: var(--gap);
 }
 
+.form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    border: solid #000 5px;
+    padding: 15px;
+}
+
+/* The button sits on its own line below the fields, centered in the form. */
+#add-form button {
+    align-self: center;
+}
+
+/* Keeps the quantity label and its input on one line, so they wrap as a unit. */
+.qty-group {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    flex: none;
+}
+
 .form-style {
     display: flex;
-    flex-direction: row;
-    justify-content: center;
-    border: solid red 5px;
+    flex-direction: column;
+    align-items: center;
     margin: 1rem 0;
-    padding: 1rem 0;
+    padding: 1rem;
+}
+
+.heading-style {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Children fill the box up to a cap, so they stay centered and inside the border. */
+.form-style > * {
+    width: 100%;
+    max-width: 48rem;
 }
 
 /* 16px input font prevents iOS Safari from zooming on focus. */
 input[type="text"],
 input[type="number"] {
-    font-size: 16px;
+    font-size: 1.25rem;
     padding: 0.75rem;
     min-height: var(--tap-size);
 }
 
 button {
-    font-size: 1rem;
+    font-size: 1.25rem;
     min-height: var(--tap-size);
     padding: var(--gap) 1rem;
 }
@@ -148,10 +180,13 @@ button:hover {
     background-color: var(--success);
 }
 
-@media (min-width: 600px) {
-    #add-form {
+@media (min-width: 800px) {
+    .form-fields {
         flex-direction: row;
+        flex-wrap: wrap;   /* drops items to a second line when the row is too narrow */
         align-items: center;
+        border: solid #000 5px;
+        padding: 15px;
     }
 
     /* Labels and button keep one line so their size doesn't depend on the row width. */
@@ -161,10 +196,10 @@ button:hover {
         flex: none;
     }
 
-    /* Only the name field stretches; min-width: 0 lets it shrink instead of overflowing. */
+    /* Only the name field stretches; the min-width stops it shrinking so far that text clips. */
     #add-form input[type="text"] {
-        flex: 1;
-        min-width: 0;
+        flex: 1 1 12rem;
+        min-width: 12rem;
     }
 
     /* Fixed width so the quantity box is the same at every window size. */

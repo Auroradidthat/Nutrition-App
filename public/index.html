@@ -16,7 +16,7 @@
 
     <main>
         <section>
-            <div>
+            <div class="heading-style">
                 <h1>Grocery List Web App</h1>
                 <p>
                     lorem ipsum dolor sit amet consectetur adipiscing elit labore autem soluta sunt 
@@ -32,11 +32,16 @@
         <section>
             <div class = form-style>
                 <form id="add-form">
-                    <label for="item-input">Add Grocery Item:</label>
-                    <input type="text" id="item-input" placeholder="e.g. Milk" autocomplete="off">
-                    <label for="quantity-input">Item Quantity:</label>
-                    <input type="number" id="quantity-input" value="1" inputmode="numeric">
-                    <button type="submit" id="add-btn">Add to list</button>
+                    <div class="form-fields">
+                        <label for="item-input"><strong>Add Grocery Item:</strong></label>
+                        <input type="text" id="item-input" placeholder="e.g. Milk" autocomplete="off">
+                        <div class="qty-group">
+                            <label for="quantity-input"><strong>Item Quantity:</strong></label>
+                            <input type="number" id="quantity-input" value="1" inputmode="numeric" min="1" max="99">
+                        </div>
+                    </div>
+                    <!--SUBMIT ITEMS AND AMOUNT FOR DISPLAY-->
+                    <button type="submit" id="add-btn"><strong>Add to list</strong></button>
                 </form>
 
                 <!--LIST ITEMS AND ERROR MESSAGES-->
