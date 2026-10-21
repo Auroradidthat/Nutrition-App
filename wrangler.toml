@@ -1,5 +1,5 @@
 # nutrition-app -> real app, protected by Cloudflare Access.
-# The public demo environment (env.demo) is removed for now; see git history to restore it.
+# nutrition-demo (--env demo) -> public sandbox with its own database, no login
 
 name = "nutrition-app"
 main = "src/index.js"
@@ -25,3 +25,28 @@ crons = ["0 4 * * *"]
 [vars]
 TEAM_DOMAIN = "https://broken-recipe-57bc.cloudflareaccess.com"
 POLICY_AUD  = "a0516dd80c32b5a045abf87183156ce7fda4f43d5b650446d456d756e40e66a6"
+
+# ---------- Public demo (deploy with: npm run deploy:demo) ----------
+# Bindings and vars are not inherited by environments, so they are repeated here.
+# DEMO_ONLY makes every items route the cookie-based sandbox, so this Worker
+# never authenticates real users and has no access to the real database.
+
+[env.demo]
+name = "nutrition-demo"
+
+[env.demo.assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*"]
+
+[[env.demo.d1_databases]]
+binding = "DB"
+database_name = "nutrition-demo-db"
+database_id = "e804b1d9-4f54-4431-a9de-b9764b5534cb"
+migrations_dir = "migrations"
+
+[env.demo.triggers]
+crons = ["0 4 * * *"]
+
+[env.demo.vars]
+DEMO_ONLY = "true"

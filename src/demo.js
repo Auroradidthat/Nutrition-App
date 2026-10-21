@@ -3,7 +3,7 @@
 
 export const DEMO_PREFIX = "demo:";
 export const DEMO_SEED = ["Milk", "Eggs", "Bread"];
-export const MAX_ITEMS_PER_DEMO = 50;
+export const MAX_ITEMS_PER_DEMO = 15;
 
 const COOKIE_NAME = "demo_sid";
 const TTL_SECONDS = 60 * 60 * 24;
