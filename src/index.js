@@ -113,7 +113,8 @@ export default {
           }
         }
 
-        const session = getDemoSession(request);
+        if (!env.DEMO_SECRET) throw new Error("DEMO_SECRET is not set");
+        const session = await getDemoSession(request, env.DEMO_SECRET);
         owner = demoOwner(session.sid);
         if (session.isNew) {
           if (await demoIsFull(env.DB)) {
@@ -123,7 +124,7 @@ export default {
           }
           sessionCount.n += 1;
           await store.seed(env.DB, owner, DEMO_SEED);
-          setCookie = demoCookie(session.sid);
+          setCookie = await demoCookie(session.sid, env.DEMO_SECRET);
         }
       } else {
         owner = await getUser(request, env, url);

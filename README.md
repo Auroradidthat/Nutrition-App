@@ -80,9 +80,10 @@ Locally there is no Cloudflare Access in front of the Worker, so `.dev.vars` sup
 
 ```
 DEV_USER=dev@example.com
+DEMO_SECRET=any-long-random-string
 ```
 
-`DEV_USER` is only honoured when the request host is `localhost`, `127.0.0.1`, `0.0.0.0` or `[::1]`; on any other host it is ignored and Access authentication is required. `.dev.vars` is gitignored and must never be set in production.
+`DEMO_SECRET` signs the demo session cookie (see [Authentication and the demo](#authentication-and-the-demo)); the demo routes return a server error without it. `DEV_USER` is only honoured when the request host is `localhost`, `127.0.0.1`, `0.0.0.0` or `[::1]`; on any other host it is ignored and Access authentication is required. `.dev.vars` is gitignored and must never be set in production.
 
 ## API
 
@@ -114,6 +115,7 @@ The app is deployed as **two Workers built from the same code**, so the public d
 - **Real users:** Cloudflare Access sits in front of the whole `nutrition-app` URL. The Worker also verifies the `Cf-Access-Jwt-Assertion` token (signature, expiry, issuer, audience) and uses the email as the owner.
 - **Demo:** the demo Worker runs with `DEMO_ONLY=true`, which makes every items route the sandbox. Each visitor gets a random `demo_sid` cookie and an isolated, pre-seeded list capped at 15 items. A daily cron deletes demo data older than 24 hours. Give interviewers the demo URL.
 - **Demo abuse protection:** the demo Worker has a per-IP rate limit (Workers Rate Limiting binding, 60 requests per minute, `429` over the limit) and a ceiling of 200 sessions (`503` "demo is busy" for new visitors when full). The rate limit is counted per Cloudflare location and is approximate, so it slows sustained floods but won't stop a short burst. The ceiling bounds D1 writes and storage, which matters because the Free plan's daily limits are shared across the account.
+- **Signed demo cookie:** the `demo_sid` cookie is `<session-id>.<HMAC-SHA-256 signature>`, signed with the `DEMO_SECRET` Worker secret. A missing, unsigned or tampered cookie is treated as a new visitor, so a client can't invent session ids to get around the rate limit or the session ceiling.
 
 ## Deploying
 
@@ -122,6 +124,7 @@ One-time setup:
 1. `npx wrangler login`
 2. `npx wrangler d1 create nutrition-db` and `npx wrangler d1 create nutrition-demo-db`, then put each printed `database_id` in `wrangler.toml`
 3. Apply migrations: `npm run db:migrate:remote` and `npm run db:migrate:demo:remote`
+4. Set the cookie-signing secret on each Worker (use a different random value for each, e.g. `openssl rand -hex 32`): `npx wrangler secret put DEMO_SECRET` and `npx wrangler secret put DEMO_SECRET --env demo`
 
 Deploy:
 
