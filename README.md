@@ -113,6 +113,7 @@ The app is deployed as **two Workers built from the same code**, so the public d
 
 - **Real users:** Cloudflare Access sits in front of the whole `nutrition-app` URL. The Worker also verifies the `Cf-Access-Jwt-Assertion` token (signature, expiry, issuer, audience) and uses the email as the owner.
 - **Demo:** the demo Worker runs with `DEMO_ONLY=true`, which makes every items route the sandbox. Each visitor gets a random `demo_sid` cookie and an isolated, pre-seeded list capped at 15 items. A daily cron deletes demo data older than 24 hours. Give interviewers the demo URL.
+- **Demo abuse protection:** the demo Worker has a per-IP rate limit (Workers Rate Limiting binding, 60 requests per minute, `429` over the limit) and a ceiling of 200 sessions (`503` "demo is busy" for new visitors when full). The rate limit is counted per Cloudflare location and is approximate, so it slows sustained floods but won't stop a short burst. The ceiling bounds D1 writes and storage, which matters because the Free plan's daily limits are shared across the account.
 
 ## Deploying
 
@@ -142,8 +143,6 @@ Protect the real app with Cloudflare Access (one-time):
 Use a **hostname-based application** rather than the Worker's own **Access** tab. In this account, the Worker-level application blocked the owner's email even with a correct Allow policy (see DEVLOG v0.4.2).
 
 The Worker verifies the signed `Cf-Access-Jwt-Assertion` header itself rather than relying on `ctx.access`, because Workers with static assets don't receive `ctx.access`.
-
-Optional: add a Cloudflare **rate limiting rule** on the demo Worker's `/api/*`.
 
 Local demo-only mode: `npm run dev:demo` (port 8788).
 
