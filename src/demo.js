@@ -4,6 +4,8 @@
 export const DEMO_PREFIX = "demo:";
 export const DEMO_SEED = ["Milk", "Eggs", "Bread"];
 export const MAX_ITEMS_PER_DEMO = 15;
+// New visitors are turned away once this many sessions exist, which bounds D1 writes and storage.
+export const MAX_DEMO_SESSIONS = 200;
 
 const COOKIE_NAME = "demo_sid";
 const TTL_SECONDS = 60 * 60 * 24;
@@ -19,6 +21,12 @@ export function getDemoSession(request) {
   const match = cookies.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
   if (match && UUID_RE.test(match[1])) return { sid: match[1], isNew: false };
   return { sid: crypto.randomUUID(), isNew: true };
+}
+
+// Rate-limit key. The client IP is used instead of the cookie, because anyone can
+// forge a new session id for every request but can't cheaply change their IP.
+export function rateLimitKey(request) {
+  return `ip:${request.headers.get("CF-Connecting-IP") || "unknown"}`;
 }
 
 export function demoCookie(sid) {

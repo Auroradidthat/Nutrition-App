@@ -8,15 +8,29 @@ import { getUser } from "./auth.js";
 import {
   DEMO_PREFIX,
   DEMO_SEED,
+  MAX_DEMO_SESSIONS,
   MAX_ITEMS_PER_DEMO,
   demoCookie,
   demoOwner,
   getDemoSession,
+  rateLimitKey,
 } from "./demo.js";
 import { json, readJson, sameOrigin } from "./http.js";
 import * as store from "./store.js";
 
 const MAX_ITEMS_PER_USER = 500;
+
+// The session count needs a table scan, so it is cached per isolate for a minute
+// (and bumped locally as sessions are created) instead of queried on every request.
+const SESSION_COUNT_TTL_MS = 60_000;
+let sessionCount = { n: 0, at: 0 };
+
+async function demoIsFull(db) {
+  if (Date.now() - sessionCount.at > SESSION_COUNT_TTL_MS) {
+    sessionCount = { n: await store.countSessions(db, DEMO_PREFIX), at: Date.now() };
+  }
+  return sessionCount.n >= MAX_DEMO_SESSIONS;
+}
 
 // ---------- Handlers ----------
 // Each receives { request, db, owner, itemId, limit } and returns a Response.
@@ -89,9 +103,25 @@ export default {
       let setCookie = null;
 
       if (isDemo) {
+        // Only the demo Worker has this binding, so the real app is never rate limited.
+        if (env.RATE_LIMITER) {
+          const { success } = await env.RATE_LIMITER.limit({ key: rateLimitKey(request) });
+          if (!success) {
+            const res = json({ error: "Too many requests. Please slow down and try again." }, 429);
+            res.headers.set("Retry-After", "60");
+            return res;
+          }
+        }
+
         const session = getDemoSession(request);
         owner = demoOwner(session.sid);
         if (session.isNew) {
+          if (await demoIsFull(env.DB)) {
+            const res = json({ error: "The demo is busy right now. Please try again later." }, 503);
+            res.headers.set("Retry-After", "300");
+            return res;
+          }
+          sessionCount.n += 1;
           await store.seed(env.DB, owner, DEMO_SEED);
           setCookie = demoCookie(session.sid);
         }

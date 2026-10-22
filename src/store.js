@@ -53,6 +53,14 @@ export function seed(db, owner, names) {
   );
 }
 
+// Number of distinct demo sessions that currently have rows.
+export function countSessions(db, ownerPrefix) {
+  return db
+    .prepare("SELECT COUNT(DISTINCT owner) AS n FROM items WHERE owner LIKE ?")
+    .bind(`${ownerPrefix}%`)
+    .first("n");
+}
+
 // Deletes demo rows older than a day (called from the cron trigger).
 export function purgeExpired(db, ownerPrefix) {
   return db

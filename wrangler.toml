@@ -45,6 +45,15 @@ database_name = "nutrition-demo-db"
 database_id = "e804b1d9-4f54-4431-a9de-b9764b5534cb"
 migrations_dir = "migrations"
 
+# Per-IP request limit on the demo API (counted per Cloudflare location, approximate).
+[[env.demo.ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "2001"
+
+  [env.demo.ratelimits.simple]
+  limit = 60
+  period = 60
+
 [env.demo.triggers]
 crons = ["0 4 * * *"]
 
