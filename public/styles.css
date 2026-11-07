@@ -136,7 +136,6 @@ label {
     flex-direction: column;
     width: fit-content;
     max-width: 100%;       /* never wider than the page */
-    margin: 1rem auto;
 }
 
 .module-items {
