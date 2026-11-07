@@ -2,7 +2,7 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: deployed and working (v0.7.0).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). **Try the public demo (no login, 15 items per visitor): https://nutrition-demo.rodesignedthat.workers.dev**
+> **Status: deployed and working (v0.7.1).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). **Try the public demo (no login, 15 items per visitor): https://nutrition-demo.rodesignedthat.workers.dev**
 
 ## Features
 
@@ -27,6 +27,7 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 ```
 .
 ├── public/                  # Static front end (served as-is)
+│   ├── _headers             # Security headers (CSP etc.) for every page
 │   ├── index.html
 │   ├── script.js            # UI: talks to the API, renders the list
 │   ├── rules.js             # Validation rules, shared by browser and Worker
@@ -204,4 +205,7 @@ This project uses [Semantic Versioning](https://semver.org/). The current versio
 - Item names are rendered with `textContent`, never `innerHTML`, so input can't be interpreted as HTML.
 - All SQL uses bound parameters. The allowlist is an extra layer, not the primary defence.
 - Mutating requests must come from the app's own origin.
+- `public/_headers` sets a Content Security Policy (scripts and styles only from the app itself, plus Google Fonts), `X-Frame-Options: DENY`, `nosniff`, a same-origin referrer policy and a locked-down Permissions-Policy on every page. If you add an inline script, an external script or another font host, update the CSP there or the browser will block it. `wrangler dev` reads `_headers` at startup, so restart it (`docker compose restart`) after editing.
+- API responses send `X-Content-Type-Options: nosniff`, and request bodies over 1 KB are rejected before they are parsed.
+- `scripts/preview.sh` only accepts a numeric port from 1024 to 65535, and binds previews to `127.0.0.1`.
 - Keep API tokens and secrets out of the repository.

@@ -214,3 +214,15 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Gotchas recorded: Git Bash rewrites Docker bind-mount paths (use `MSYS_NO_PATHCONV=1` and `pwd -W`; the script does this); a container started without `.dev.vars` returns 401 / "signed out"; `DEV_USER` only works on localhost-style hostnames.
 - Not verified: the new layout was checked via served HTML/CSS and API calls, not in a real browser at phone width.
 - Minor bump: user-visible layout change.
+
+### v0.7.1 — 2026-11-07 — Security hardening
+
+- Added `public/_headers`: CSP (`default-src 'none'`, scripts/styles from self, Google Fonts only), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: same-origin`, restrictive Permissions-Policy. Static pages bypass the Worker (`run_worker_first` is only `/api/*`), so headers have to live here.
+- `src/http.js`: JSON responses send `X-Content-Type-Options: nosniff`; `readJson` rejects bodies over 1024 characters before parsing (oversized input now gets the normal 400).
+- `scripts/preview.sh`: port must be a number from 1024 to 65535 (also for `--stop`).
+- Verified locally: headers present on `/`, `/about.html` and `styles.css`; oversized body returns 400; normal add and remove work; in a real browser the page loads with no CSP violations, both web fonts load, and add/remove work.
+- Reviewed and left as is: signed demo cookie already `HttpOnly; Secure; SameSite=Lax`, owner is always server-side, SQL is parameterised, same-origin check on mutations.
+- Not done: running the Docker container as a non-root user. The `node_modules` and `wrangler_state` volumes were created as root, so switching users needs a volume migration. The container is localhost-only and dev-only. Also not changed: both deploy workflows share one Cloudflare API token, and approvals allow self-review (single-maintainer repo).
+- Not yet deployed: the CSP is untested on the deployed Workers (including behind Cloudflare Access).
+- Patch bump: security hardening, no new capability.
+
