@@ -2,7 +2,7 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: deployed and working (v0.4.2).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). **Try the public demo (no login, 15 items per visitor): https://nutrition-demo.rodesignedthat.workers.dev**
+> **Status: deployed and working (v0.7.0).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). **Try the public demo (no login, 15 items per visitor): https://nutrition-demo.rodesignedthat.workers.dev**
 
 ## Features
 
@@ -34,15 +34,19 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 ├── src/                     # Cloudflare Worker
 │   ├── index.js             # Routing and request handlers
 │   ├── auth.js              # Cloudflare Access JWT verification
-│   ├── demo.js              # Demo session cookie and seed data│   ├── store.js             # All D1 queries
+│   ├── demo.js              # Demo session cookie and seed data
+│   ├── store.js             # All D1 queries
 │   └── http.js              # json / readJson / sameOrigin helpers
-├── .github/workflows/       # CI: deploy-demo.yml deploys the demo on push to main
+├── .github/workflows/       # CI: deploy-demo.yml (automatic) and deploy-app.yml (needs approval)
+├── scripts/
+│   └── preview.sh           # Build and serve any committed branch in Docker
 ├── migrations/              # D1 schema migrations (applied in order)
 │   ├── 0001_init.sql
 │   └── 0002_add_quantity.sql
 ├── wrangler.toml            # Cloudflare config (default env = real app, env.demo = public demo)
 ├── Dockerfile
 ├── docker-compose.yml
+├── .gitattributes           # Keeps LF line endings on shell scripts
 ├── package.json
 ├── README.md
 └── DEVLOG.md                # Running log of changes and decisions
@@ -75,6 +79,20 @@ Then open http://localhost:8787.
 - The project folder is mounted into the container, so edits to `public/` and `src/` show up without rebuilding (hard refresh the browser for front-end changes).
 - It still needs `.dev.vars` (see above). The port is bound to `127.0.0.1` only.
 - **This is not a production deployment.** There is no real authentication in this mode: `DEV_USER` stands in for a signed-in user, so anyone who can reach the port is that user. Don't expose it to a network or the internet. For real multi-device use, deploy to Cloudflare (see [Deploying](#deploying)).
+
+### Previewing a branch before merging
+
+`docker compose` mounts your working folder, so it shows uncommitted edits. To check exactly what is committed on a branch (for example a new design) without touching `main`, use the preview script:
+
+```bash
+scripts/preview.sh                  # current branch on http://127.0.0.1:8799
+scripts/preview.sh dev 8800         # a named branch on its own port
+scripts/preview.sh --stop 8800      # stop that preview
+```
+
+- It builds an image from the committed branch (`git archive`), so uncommitted changes are not included. Each port gets its own container (`grocery-preview-<port>`) and a fresh database.
+- Only `.dev.vars` is mounted. Open it on `localhost` or `127.0.0.1`; any other hostname is treated as signed out.
+- Recommended flow for front-end prototypes: build the HTML/CSS separately, integrate it into `public/` on `dev`, run the preview, then merge `dev` into `main`. The add form must stay a real `<form id="add-form">` with the ids `script.js` looks up (`item-input`, `quantity-input`, `add-btn`, `status`, `item-list`).
 
 The first start can take 30+ seconds. After changing `script.js` or `styles.css`, hard refresh (Ctrl+Shift+R) to bypass the browser cache.
 
@@ -137,16 +155,25 @@ npm run deploy        # real app (nutrition-app)
 npm run deploy:demo   # public demo (nutrition-demo)
 ```
 
-### Automatic demo deploys (GitHub Actions)
+### Deploying with GitHub Actions
 
-Pushes to `main` that change `public/`, `src/`, `wrangler.toml` or the package files deploy the **demo** automatically (`.github/workflows/deploy-demo.yml`). You can also run it by hand from the repo's **Actions** tab. Without this, the live demo goes stale until someone runs `npm run deploy:demo`.
+Pushes to `main` that change `public/`, `src/`, `wrangler.toml` or the package files start two workflows:
+
+| Workflow | Deploys | Approval |
+|---|---|---|
+| `deploy-demo.yml` | `nutrition-demo` | None, runs automatically |
+| `deploy-app.yml` | `nutrition-app` (the real app) | Waits for a reviewer to approve in the **Actions** tab |
+
+Both can also be started by hand from the **Actions** tab. Pushes that touch only docs, scripts or other files outside those paths deploy nothing.
+
+**Approving a real-app deploy:** open the waiting run, click **Review deployments**, tick `production`, then **Approve and deploy**. The approval comes from the `production` environment (**Settings → Environments → production**), which requires a reviewer and only allows deployments from `main`. Keep the `environment: production` line in `deploy-app.yml`; without it the job would deploy unattended.
 
 One-time setup, under the repo's **Settings → Secrets and variables → Actions → Repository secrets**:
 
 - `CLOUDFLARE_ACCOUNT_ID`: your account ID (in the dashboard URL after `dash.cloudflare.com/`).
 - `CLOUDFLARE_API_TOKEN`: create at **My Profile → API Tokens → Create Token → Custom token**, with one account policy: **Workers Scripts: Edit** and **D1: Edit**, scoped to your account. The token string is shown only **after you click Create Token**, and only once. The JSON preview on the earlier screen contains permission-group IDs, which are not the token (pasting one gives `Invalid format for Authorization header`).
 
-Limits: the workflow deploys only `nutrition-demo`. The real app is still deployed by hand (`npm run deploy`), and CI does not run D1 migrations, so run `npm run db:migrate:demo:remote` yourself after adding one.
+Limits: neither workflow runs D1 migrations. After adding a file under `migrations/`, run `npm run db:migrate:demo:remote` (demo) and `npm run db:migrate:remote` (real app) yourself, before approving the real-app deploy. You can still deploy by hand with `npm run deploy` / `npm run deploy:demo`.
 
 Protect the real app with Cloudflare Access (one-time):
 

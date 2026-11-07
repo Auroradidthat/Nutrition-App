@@ -25,7 +25,6 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 ## Upcoming
 
 - [ ] Demo banner so visitors know they're in the sandbox
-- [ ] Quantity `−` / `+` buttons (replaces the tiny native spinner)
 - [ ] Check-off (done) toggle in the UI
 - [ ] Check the deployed apps on a phone (the desktop login is confirmed)
 - [ ] Verify the deployed apps in a real browser (desktop and phone)
@@ -205,3 +204,13 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - `PATCH /api/items/:id` accepts `{ "decrement": true }`: one SQL statement guarded by `quantity > 1`; `409` at 1, `404` for unknown ids.
 - Verified locally against the demo Worker: up, down, `409` at 1, `404`, and the `400` for an empty body. Not verified in a real browser; buttons shift left when **−** appears or disappears.
 - Minor bump: new user-visible capability.
+
+### v0.7.0 — 2026-11-07 — New add-form layout, preview script, approval-gated app deploy
+
+- Front end: the add form now uses the prototyped layout (`.list-wrap`, `.module-items`, `.item-group`, `.qty-group`). Where the prototype and the existing styles disagreed, the existing border, padding and gap were kept. The form stays a real `<form id="add-form">`: a `div` with a submit button does nothing, and `script.js` listens for the form's `submit`. Old `.form-style` / `.form-fields` / `#add-form` rules and the 800px media query were removed.
+- Added `scripts/preview.sh` to build and serve any committed branch in Docker on its own port (see the README). Added `.gitattributes` (`*.sh` stays LF) so the script works on Linux and WSL.
+- Added `.github/workflows/deploy-app.yml`: deploys `nutrition-app` on the same triggers as the demo, but the job runs in a `production` GitHub environment that needs a reviewer and only allows `main`. First run approved and succeeded. It does not run D1 migrations.
+- Workflow for prototypes: build HTML/CSS separately, integrate into `public/` on `dev`, check with the preview script, merge to `main`.
+- Gotchas recorded: Git Bash rewrites Docker bind-mount paths (use `MSYS_NO_PATHCONV=1` and `pwd -W`; the script does this); a container started without `.dev.vars` returns 401 / "signed out"; `DEV_USER` only works on localhost-style hostnames.
+- Not verified: the new layout was checked via served HTML/CSS and API calls, not in a real browser at phone width.
+- Minor bump: user-visible layout change.
