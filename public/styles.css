@@ -130,7 +130,9 @@ label {
     background-color: var(--danger);
 }
 
-/* Add-item form and list layout */
+/* Add-item form and list layout.
+   Where the old and new designs disagreed, the existing value is kept
+   (border, padding, gap); the new design supplies the row layout. */
 .list-wrap {
     display: flex;
     flex-direction: column;
@@ -143,15 +145,32 @@ label {
     flex-direction: row;
     flex-wrap: wrap;       /* drops fields to a new line on narrow screens */
     align-items: flex-end;
-    gap: 1rem;
-    border-style: solid;
-    padding: 1rem;
+    gap: var(--gap);
+    border: solid #000 5px;
+    padding: 15px;
 }
 
 .item-group,
 .qty-group {
     display: flex;
     flex-direction: column;
+    gap: var(--gap);       /* label sits above its input */
+    flex: none;            /* a label and its input wrap as a unit */
+}
+
+/* Labels and the button keep one line so their size doesn't depend on the row width. */
+.module-items label,
+.module-items button {
+    white-space: nowrap;
+}
+
+/* The name field keeps a readable minimum width; the quantity box is the same size everywhere. */
+.module-items input[type="text"] {
+    min-width: 12rem;
+}
+
+.module-items input[type="number"] {
+    width: 5rem;
 }
 
 .heading-style {
