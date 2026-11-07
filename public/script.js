@@ -52,7 +52,7 @@ async function run(action) {
     }
 }
 
-//BUILDS ONE ROW CONTAINING TEXT, QUANTITY AND A REMOVE BUTTON
+//BUILDS ONE ROW: NAME, TALLY, THEN THE - (ONLY IF TALLY > 1), + AND REMOVE BUTTONS
 function createRow(item) {
     const li = document.createElement("li");
 
@@ -63,12 +63,30 @@ function createRow(item) {
     qty.className = "item-qty";
     qty.textContent = `×${item.quantity}`;
 
+    const subtractBtn = document.createElement("button");
+    subtractBtn.type = "button";
+    subtractBtn.textContent = "−";
+    subtractBtn.dataset.action = "decrement";
+    subtractBtn.dataset.id = item.id;
+    subtractBtn.setAttribute("aria-label", `Take one off ${item.text}`);
+
+    const addOneBtn = document.createElement("button");
+    addOneBtn.type = "button";
+    addOneBtn.textContent = "+";
+    addOneBtn.dataset.action = "increment";
+    addOneBtn.dataset.id = item.id;
+    addOneBtn.setAttribute("aria-label", `Add one more ${item.text}`);
+    addOneBtn.disabled = item.quantity >= MAX_QUANTITY;
+
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.textContent = "Remove";
+    removeBtn.dataset.action = "remove";
     removeBtn.dataset.id = item.id;
 
-    li.append(text, qty, removeBtn);
+    li.append(text, qty);
+    if (item.quantity > MIN_QUANTITY) li.append(subtractBtn);   // at 1, Remove is the way to go
+    li.append(addOneBtn, removeBtn);
     return li;
 }
 
@@ -119,10 +137,32 @@ function removeItem(id) {
     });
 }
 
-//ONE CLICK LISTENER FOR EVERY REMOVE BUTTON
+//ADDS ONE TO AN ITEM'S TALLY (THE SERVER DOES THE MATH)
+function incrementItem(id) {
+    return run(async () => {
+        const saved = await api(`/${id}`, { method: "PATCH", body: JSON.stringify({ increment: true }) });
+        items = items.map((item) => (item.id === id ? saved : item));
+        render();
+    });
+}
+
+//TAKES ONE OFF AN ITEM'S TALLY (THE SERVER KEEPS IT AT 1 OR MORE)
+function decrementItem(id) {
+    return run(async () => {
+        const saved = await api(`/${id}`, { method: "PATCH", body: JSON.stringify({ decrement: true }) });
+        items = items.map((item) => (item.id === id ? saved : item));
+        render();
+    });
+}
+
+//ONE CLICK LISTENER FOR EVERY -, + AND REMOVE BUTTON
 list.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-id]");
-    if (button) removeItem(Number(button.dataset.id));
+    if (!button) return;
+    const id = Number(button.dataset.id);
+    if (button.dataset.action === "increment") incrementItem(id);
+    else if (button.dataset.action === "decrement") decrementItem(id);
+    else removeItem(id);
 });
 
 form.addEventListener("submit", addItem);
