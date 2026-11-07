@@ -189,3 +189,10 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - `POST /api/items` returns `409` when the name already exists for that owner (case and surrounding spaces ignored), with a message pointing to **+**.
 - Verified locally against the demo Worker: increment, duplicate rejection (`" MILK "` vs `Milk`), `404`, `done`, and the guarded SQL at 99. Not verified: the buttons in a real browser, and the `409`-at-99 response end to end (the demo's 60/min rate limit stopped a scripted run, so I tested the SQL directly).
 - Minor bump: new user-visible capability.
+
+### v0.6.0 — 2026-11-07 — − button
+
+- Each row gains a **−** button before **+**. It is not rendered when the tally is 1, so **Remove** is the only way to drop the last unit (a deliberate step, so the tally never silently deletes an item).
+- `PATCH /api/items/:id` accepts `{ "decrement": true }`: one SQL statement guarded by `quantity > 1`; `409` at 1, `404` for unknown ids.
+- Verified locally against the demo Worker: up, down, `409` at 1, `404`, and the `400` for an empty body. Not verified in a real browser; buttons shift left when **−** appears or disappears.
+- Minor bump: new user-visible capability.

@@ -8,7 +8,7 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 
 **Front end**
 - Add items with a name and a quantity (1–99), saved on the server
-- A **+** button on each item adds one to its tally (up to 99); adding a name that is already on the list is rejected with a prompt to use **+**
+- **+** and **−** buttons on each item change its tally (1–99); **−** is hidden when the tally is 1 (use **Remove**); adding a name that is already on the list is rejected with a prompt to use **+**
 - Remove items individually
 - List persists across refreshes and devices
 - Character allowlist on item names (letters, numbers, spaces and `' ’ & , . - % ( ) /`)
@@ -96,6 +96,7 @@ All routes return JSON. `owner` is always derived server-side and is never accep
 | `POST` | `/api/items` | `{ "text": "Milk", "quantity": 2 }` | Add an item (`quantity` optional, default 1). `409` if the name (case-insensitive) is already on the list |
 | `PATCH` | `/api/items/:id` | `{ "done": true }` | Mark an item done or not done |
 | `PATCH` | `/api/items/:id` | `{ "increment": true }` | Add one to the quantity, done atomically in SQL. `409` at 99 |
+| `PATCH` | `/api/items/:id` | `{ "decrement": true }` | Subtract one, never below 1. `409` at 1 (use `DELETE`) |
 | `DELETE` | `/api/items/:id` | | Remove an item |
 
 The same four routes exist under `/api/demo/items` for the public demo, identified by a random cookie instead of a login.

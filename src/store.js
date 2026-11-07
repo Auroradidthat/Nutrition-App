@@ -65,6 +65,18 @@ export async function increment(db, owner, id, max) {
   return row ? toItem(row) : null;
 }
 
+// Subtracts one, never going below `min`. Same single-statement idea as increment().
+// Returns the updated item, or null if it doesn't exist or is already at `min`.
+export async function decrement(db, owner, id, min) {
+  const row = await db
+    .prepare(
+      `UPDATE items SET quantity = quantity - 1 WHERE id = ? AND owner = ? AND quantity > ? RETURNING ${COLUMNS}`
+    )
+    .bind(id, owner, min)
+    .first();
+  return row ? toItem(row) : null;
+}
+
 // Returns true if an item was deleted.
 export async function remove(db, owner, id) {
   const result = await db

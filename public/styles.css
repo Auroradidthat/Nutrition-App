@@ -108,7 +108,8 @@ label {
     font-weight: bold;
 }
 
-#item-list li button[data-action="increment"] {
+#item-list li button[data-action="increment"],
+#item-list li button[data-action="decrement"] {
     min-width: var(--tap-size);
 }
 

@@ -3,7 +3,7 @@
 //   /api/demo/items  -> public sandbox, identity comes from a random cookie
 // Both share the same handlers; only the `owner` value differs.
 
-import { MAX_QUANTITY, validateItem } from "../public/rules.js";
+import { MAX_QUANTITY, MIN_QUANTITY, validateItem } from "../public/rules.js";
 import { getUser } from "./auth.js";
 import {
   DEMO_PREFIX,
@@ -57,7 +57,7 @@ async function createItem({ request, db, owner, limit }) {
   return json(await store.create(db, owner, { text, quantity }), 201);
 }
 
-// PATCH /items/:id  { increment: true }  or  { done }
+// PATCH /items/:id  { increment: true }  or  { decrement: true }  or  { done }
 async function updateItem({ request, db, owner, itemId }) {
   const body = await readJson(request);
 
@@ -69,7 +69,15 @@ async function updateItem({ request, db, owner, itemId }) {
       : json({ error: "Not found" }, 404);
   }
 
-  if (typeof body?.done !== "boolean") return json({ error: "done must be a boolean, or increment must be true" }, 400);
+  if (body?.decrement === true) {
+    const updated = await store.decrement(db, owner, itemId, MIN_QUANTITY);
+    if (updated) return json(updated);
+    return (await store.get(db, owner, itemId))
+      ? json({ error: "Quantity is already 1. Use Remove to delete the item." }, 409)
+      : json({ error: "Not found" }, 404);
+  }
+
+  if (typeof body?.done !== "boolean") return json({ error: "done must be a boolean, or increment/decrement must be true" }, 400);
 
   const item = await store.setDone(db, owner, itemId, body.done);
   return item ? json(item) : json({ error: "Not found" }, 404);
