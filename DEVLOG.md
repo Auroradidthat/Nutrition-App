@@ -223,6 +223,6 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Verified locally: headers present on `/`, `/about.html` and `styles.css`; oversized body returns 400; normal add and remove work; in a real browser the page loads with no CSP violations, both web fonts load, and add/remove work.
 - Reviewed and left as is: signed demo cookie already `HttpOnly; Secure; SameSite=Lax`, owner is always server-side, SQL is parameterised, same-origin check on mutations.
 - Not done: running the Docker container as a non-root user. The `node_modules` and `wrangler_state` volumes were created as root, so switching users needs a volume migration. The container is localhost-only and dev-only. Also not changed: both deploy workflows share one Cloudflare API token, and approvals allow self-review (single-maintainer repo).
-- Not yet deployed: the CSP is untested on the deployed Workers (including behind Cloudflare Access).
+- Deployed and checked live in a real browser, on the demo and on the real app behind Cloudflare Access: headers present on `/` and `/about.html`, no CSP violations or console errors, all four fonts load, and the API works. Add/remove was exercised on the demo only; the real app check was read-only to leave real data alone.
 - Patch bump: security hardening, no new capability.
 
