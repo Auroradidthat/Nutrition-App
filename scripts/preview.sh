@@ -12,14 +12,25 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# Only a plain unprivileged port number is accepted, so the value can't smuggle
+# extra options or a different bind address into the docker commands below.
+check_port() {
+  case "$1" in ''|*[!0-9]*) echo "Invalid port: $1 (use a number from 1024 to 65535)" >&2; exit 1 ;; esac
+  if [ "$1" -lt 1024 ] || [ "$1" -gt 65535 ]; then
+    echo "Invalid port: $1 (use a number from 1024 to 65535)" >&2; exit 1
+  fi
+}
+
 if [ "${1:-}" = "--stop" ]; then
   port="${2:-8799}"
+  check_port "$port"
   docker rm -f "grocery-preview-$port" >/dev/null 2>&1 && echo "Stopped grocery-preview-$port" || echo "Nothing running on $port"
   exit 0
 fi
 
 branch="${1:-$(git branch --show-current)}"
 port="${2:-8799}"
+check_port "$port"
 name="grocery-preview-$port"
 image="grocery-preview:$port"
 
