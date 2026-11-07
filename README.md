@@ -35,6 +35,7 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 │   ├── auth.js              # Cloudflare Access JWT verification
 │   ├── demo.js              # Demo session cookie and seed data│   ├── store.js             # All D1 queries
 │   └── http.js              # json / readJson / sameOrigin helpers
+├── .github/workflows/       # CI: deploy-demo.yml deploys the demo on push to main
 ├── migrations/              # D1 schema migrations (applied in order)
 │   ├── 0001_init.sql
 │   └── 0002_add_quantity.sql
@@ -132,6 +133,17 @@ Deploy:
 npm run deploy        # real app (nutrition-app)
 npm run deploy:demo   # public demo (nutrition-demo)
 ```
+
+### Automatic demo deploys (GitHub Actions)
+
+Pushes to `main` that change `public/`, `src/`, `wrangler.toml` or the package files deploy the **demo** automatically (`.github/workflows/deploy-demo.yml`). You can also run it by hand from the repo's **Actions** tab. Without this, the live demo goes stale until someone runs `npm run deploy:demo`.
+
+One-time setup, under the repo's **Settings → Secrets and variables → Actions → Repository secrets**:
+
+- `CLOUDFLARE_ACCOUNT_ID`: your account ID (in the dashboard URL after `dash.cloudflare.com/`).
+- `CLOUDFLARE_API_TOKEN`: create at **My Profile → API Tokens → Create Token → Custom token**, with one account policy: **Workers Scripts: Edit** and **D1: Edit**, scoped to your account. The token string is shown only **after you click Create Token**, and only once. The JSON preview on the earlier screen contains permission-group IDs, which are not the token (pasting one gives `Invalid format for Authorization header`).
+
+Limits: the workflow deploys only `nutrition-demo`. The real app is still deployed by hand (`npm run deploy`), and CI does not run D1 migrations, so run `npm run db:migrate:demo:remote` yourself after adding one.
 
 Protect the real app with Cloudflare Access (one-time):
 

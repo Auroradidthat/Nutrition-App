@@ -180,3 +180,12 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Documented the correct Access setup and the AUD-changes-on-recreate gotcha in the README.
 - Housekeeping: the temporary read-only API token and its file were to be deleted and revoked after diagnosis.
 - Patch bump: configuration change, no code change.
+
+### v0.4.3 — 2026-11-07 — Auto-deploy the demo from GitHub
+
+- Found the live demo still showing old home-page text: nothing deployed on push, and the demo Worker had not been redeployed since 2026-10-22. Caching was not the cause (`max-age=0, must-revalidate`).
+- Added `.github/workflows/deploy-demo.yml`: runs `npm run deploy:demo` on pushes to `main` that touch app files, plus manual `workflow_dispatch`. Deploys the demo only; the real app stays a manual deploy. No D1 migrations in CI.
+- Needs repo secrets `CLOUDFLARE_API_TOKEN` (account policy: Workers Scripts Edit, D1 Edit) and `CLOUDFLARE_ACCOUNT_ID`. Documented in the README.
+- Setup gotcha: the first runs failed with `Invalid format for Authorization header` because a permission-group ID from the token preview JSON was saved as the token. The real token only appears after **Create Token**. Before that, the secrets were missing entirely, so Wrangler reported no `CLOUDFLARE_API_TOKEN`.
+- Verified: run went green and the live page shows the new intro text.
+- Patch bump: tooling and docs, no app code change.
