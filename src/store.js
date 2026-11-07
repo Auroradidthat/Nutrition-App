@@ -36,6 +36,35 @@ export async function setDone(db, owner, id, done) {
   return row ? toItem(row) : null;
 }
 
+// Finds an item by name, ignoring case and surrounding spaces. Null if none.
+export async function findByText(db, owner, text) {
+  const row = await db
+    .prepare(`SELECT ${COLUMNS} FROM items WHERE owner = ? AND lower(trim(text)) = lower(?) LIMIT 1`)
+    .bind(owner, text.trim())
+    .first();
+  return row ? toItem(row) : null;
+}
+
+export async function get(db, owner, id) {
+  const row = await db
+    .prepare(`SELECT ${COLUMNS} FROM items WHERE id = ? AND owner = ?`)
+    .bind(id, owner)
+    .first();
+  return row ? toItem(row) : null;
+}
+
+// Adds one to the quantity in a single statement, so two devices tapping at once
+// both count. Returns the updated item, or null if it doesn't exist or is at `max`.
+export async function increment(db, owner, id, max) {
+  const row = await db
+    .prepare(
+      `UPDATE items SET quantity = quantity + 1 WHERE id = ? AND owner = ? AND quantity < ? RETURNING ${COLUMNS}`
+    )
+    .bind(id, owner, max)
+    .first();
+  return row ? toItem(row) : null;
+}
+
 // Returns true if an item was deleted.
 export async function remove(db, owner, id) {
   const result = await db

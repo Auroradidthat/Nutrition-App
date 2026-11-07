@@ -108,7 +108,22 @@ label {
     font-weight: bold;
 }
 
-#item-list li button:hover {
+#item-list li button[data-action="increment"] {
+    min-width: var(--tap-size);
+}
+
+#item-list li button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#item-list li button:disabled:hover {
+    color: inherit;
+    background-color: revert;
+    font-weight: normal;
+}
+
+#item-list li button[data-action="remove"]:hover {
     /**color: white;**/
     font-weight: bold;
     background-color: var(--danger);

@@ -62,6 +62,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | `DEMO_ONLY` var makes every items route the sandbox | The front end needs no change: `/` on the demo Worker calls `/api/items`, which is the sandbox there |
 | Verify the Access JWT header in the Worker instead of using `ctx.access` | Workers with static assets run behind an internal router that doesn't pass `ctx.access`; the signed `Cf-Access-Jwt-Assertion` header is still available |
 | Hostname-based Access application for `nutrition-app.rodesignedthat.workers.dev` instead of the Worker's own Access tab | The Worker-level application returned Blocked for the owner's email despite a matching Allow policy, and its policy evaluation couldn't be inspected. The hostname-based application worked immediately. |
+| Reject duplicate names (case-insensitive) and add a `+` button that increments the tally | Two rows for "Milk" is clutter; `+` is the intended way to want more. Increment is `quantity + 1` in one SQL statement (guarded by `quantity < 99`), not read-modify-write, so two devices tapping at once both count. No unique index/migration: a race between two simultaneous adds of a new name could still make a duplicate, judged not worth a migration that fails on existing duplicates. |
 | Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
 
 ---
@@ -180,3 +181,11 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Documented the correct Access setup and the AUD-changes-on-recreate gotcha in the README.
 - Housekeeping: the temporary read-only API token and its file were to be deleted and revoked after diagnosis.
 - Patch bump: configuration change, no code change.
+
+### v0.5.0 — 2026-11-07 — + button and duplicate prevention
+
+- Each row now shows the name, the tally, then **+** and **Remove**. **+** adds one (disabled at 99).
+- `PATCH /api/items/:id` accepts `{ "increment": true }`; the Worker returns `409` at the cap and `404` for unknown ids. `{ "done": ... }` still works.
+- `POST /api/items` returns `409` when the name already exists for that owner (case and surrounding spaces ignored), with a message pointing to **+**.
+- Verified locally against the demo Worker: increment, duplicate rejection (`" MILK "` vs `Milk`), `404`, `done`, and the guarded SQL at 99. Not verified: the buttons in a real browser, and the `409`-at-99 response end to end (the demo's 60/min rate limit stopped a scripted run, so I tested the SQL directly).
+- Minor bump: new user-visible capability.

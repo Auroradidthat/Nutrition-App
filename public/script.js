@@ -52,7 +52,7 @@ async function run(action) {
     }
 }
 
-//BUILDS ONE ROW CONTAINING TEXT, QUANTITY AND A REMOVE BUTTON
+//BUILDS ONE ROW: NAME, TALLY, THEN THE + AND REMOVE BUTTONS
 function createRow(item) {
     const li = document.createElement("li");
 
@@ -63,12 +63,21 @@ function createRow(item) {
     qty.className = "item-qty";
     qty.textContent = `×${item.quantity}`;
 
+    const addOneBtn = document.createElement("button");
+    addOneBtn.type = "button";
+    addOneBtn.textContent = "+";
+    addOneBtn.dataset.action = "increment";
+    addOneBtn.dataset.id = item.id;
+    addOneBtn.setAttribute("aria-label", `Add one more ${item.text}`);
+    addOneBtn.disabled = item.quantity >= MAX_QUANTITY;
+
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.textContent = "Remove";
+    removeBtn.dataset.action = "remove";
     removeBtn.dataset.id = item.id;
 
-    li.append(text, qty, removeBtn);
+    li.append(text, qty, addOneBtn, removeBtn);
     return li;
 }
 
@@ -119,10 +128,22 @@ function removeItem(id) {
     });
 }
 
-//ONE CLICK LISTENER FOR EVERY REMOVE BUTTON
+//ADDS ONE TO AN ITEM'S TALLY (THE SERVER DOES THE MATH)
+function incrementItem(id) {
+    return run(async () => {
+        const saved = await api(`/${id}`, { method: "PATCH", body: JSON.stringify({ increment: true }) });
+        items = items.map((item) => (item.id === id ? saved : item));
+        render();
+    });
+}
+
+//ONE CLICK LISTENER FOR EVERY + AND REMOVE BUTTON
 list.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-id]");
-    if (button) removeItem(Number(button.dataset.id));
+    if (!button) return;
+    const id = Number(button.dataset.id);
+    if (button.dataset.action === "increment") incrementItem(id);
+    else removeItem(id);
 });
 
 form.addEventListener("submit", addItem);

@@ -3,7 +3,7 @@
 //   /api/demo/items  -> public sandbox, identity comes from a random cookie
 // Both share the same handlers; only the `owner` value differs.
 
-import { validateItem } from "../public/rules.js";
+import { MAX_QUANTITY, validateItem } from "../public/rules.js";
 import { getUser } from "./auth.js";
 import {
   DEMO_PREFIX,
@@ -48,15 +48,28 @@ async function createItem({ request, db, owner, limit }) {
   const error = validateItem(text, quantity);
   if (error) return json({ error }, 400);
 
+  if (await store.findByText(db, owner, text)) {
+    return json({ error: `"${text}" is already on your list. Use + to add more.` }, 409);
+  }
+
   if ((await store.count(db, owner)) >= limit) return json({ error: "List is full" }, 409);
 
   return json(await store.create(db, owner, { text, quantity }), 201);
 }
 
-// PATCH /items/:id  { done }
+// PATCH /items/:id  { increment: true }  or  { done }
 async function updateItem({ request, db, owner, itemId }) {
   const body = await readJson(request);
-  if (typeof body?.done !== "boolean") return json({ error: "done must be a boolean" }, 400);
+
+  if (body?.increment === true) {
+    const updated = await store.increment(db, owner, itemId, MAX_QUANTITY);
+    if (updated) return json(updated);
+    return (await store.get(db, owner, itemId))
+      ? json({ error: `Quantity can't go above ${MAX_QUANTITY}.` }, 409)
+      : json({ error: "Not found" }, 404);
+  }
+
+  if (typeof body?.done !== "boolean") return json({ error: "done must be a boolean, or increment must be true" }, 400);
 
   const item = await store.setDone(db, owner, itemId, body.done);
   return item ? json(item) : json({ error: "Not found" }, 404);
