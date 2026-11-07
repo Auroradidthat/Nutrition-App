@@ -14,7 +14,7 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 - Character allowlist on item names (letters, numbers, spaces and `' ’ & , . - % ( ) /`)
 - Inline error messages (validation, server errors, lost connection, signed out)
 - `/demo` automatically uses the public sandbox API
-- Mobile-first layout with 44px tap targets and no iOS zoom on inputs
+- Mobile-first layout with 50px tap targets and no iOS zoom on inputs
 
 **Back end**
 - REST API on a Cloudflare Worker, storage in D1 (SQLite)
