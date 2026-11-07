@@ -130,51 +130,35 @@ label {
     background-color: var(--danger);
 }
 
-#add-form {
+/* Add-item form and list layout */
+.list-wrap {
     display: flex;
     flex-direction: column;
-    gap: var(--gap);
+    width: fit-content;
+    max-width: 100%;       /* never wider than the page */
+    margin: 1rem auto;
 }
 
-.form-fields {
+.module-items {
     display: flex;
-    flex-direction: column;
-    gap: var(--gap);
-    border: solid #000 5px;
-    padding: 15px;
+    flex-direction: row;
+    flex-wrap: wrap;       /* drops fields to a new line on narrow screens */
+    align-items: flex-end;
+    gap: 1rem;
+    border-style: solid;
+    padding: 1rem;
 }
 
-/* The button sits on its own line below the fields, centered in the form. */
-#add-form button {
-    align-self: center;
-}
-
-/* Keeps the quantity label and its input on one line, so they wrap as a unit. */
+.item-group,
 .qty-group {
     display: flex;
-    align-items: center;
-    gap: var(--gap);
-    flex: none;
-}
-
-.form-style {
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    margin: 1rem 0;
-    padding: 1rem;
 }
 
 .heading-style {
     display: flex;
     flex-direction: column;
     align-items: center;
-}
-
-/* Children fill the box up to a cap, so they stay centered and inside the border. */
-.form-style > * {
-    width: 100%;
-    max-width: 48rem;
 }
 
 /* 16px input font prevents iOS Safari from zooming on focus. */
@@ -194,33 +178,4 @@ button {
 button:hover {
     color: white;
     background-color: var(--success);
-}
-
-@media (min-width: 800px) {
-    .form-fields {
-        flex-direction: row;
-        flex-wrap: wrap;   /* drops items to a second line when the row is too narrow */
-        align-items: center;
-        border: solid #000 5px;
-        padding: 15px;
-    }
-
-    /* Labels and button keep one line so their size doesn't depend on the row width. */
-    #add-form label,
-    #add-form button {
-        white-space: nowrap;
-        flex: none;
-    }
-
-    /* Only the name field stretches; the min-width stops it shrinking so far that text clips. */
-    #add-form input[type="text"] {
-        flex: 1 1 12rem;
-        min-width: 12rem;
-    }
-
-    /* Fixed width so the quantity box is the same at every window size. */
-    #add-form input[type="number"] {
-        flex: none;
-        width: 5rem;
-    }
 }
