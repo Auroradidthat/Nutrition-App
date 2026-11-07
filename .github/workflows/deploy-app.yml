@@ -1,0 +1,42 @@
+name: Deploy real app
+
+# Deploys the real Worker (nutrition-app) ONLY after a human approves it.
+# The job runs in the "production" environment, which requires a reviewer and
+# only allows the main branch (Settings -> Environments -> production).
+# Do not remove the `environment:` line: without it this would deploy unattended.
+#
+# This does not run database migrations. If a change adds a file under
+# migrations/, run `npm run db:migrate:remote` yourself before approving.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "public/**"
+      - "src/**"
+      - "wrangler.toml"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-app.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-app
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
