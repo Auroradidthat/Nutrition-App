@@ -40,7 +40,8 @@ A mobile-first web app for keeping a list of food items with quantities, built w
 │   └── http.js              # json / readJson / sameOrigin helpers
 ├── .github/workflows/       # CI: deploy-demo.yml (automatic) and deploy-app.yml (needs approval)
 ├── scripts/
-│   └── preview.sh           # Build and serve any committed branch in Docker
+│   ├── preview.sh           # Build and serve any committed branch in Docker
+│   └── sync-from-dev.sh     # Gated copy of front-end files from DEV_NUTRITION_APP
 ├── migrations/              # D1 schema migrations (applied in order)
 │   ├── 0001_init.sql
 │   └── 0002_add_quantity.sql
@@ -105,6 +106,39 @@ DEMO_SECRET=any-long-random-string
 ```
 
 `DEMO_SECRET` signs the demo session cookie (see [Authentication and the demo](#authentication-and-the-demo)); the demo routes return a server error without it. `DEV_USER` is only honoured when the request host is `localhost`, `127.0.0.1`, `0.0.0.0` or `[::1]`; on any other host it is ignored and Access authentication is required. `.dev.vars` is gitignored and must never be set in production.
+
+## Syncing front-end changes from DEV
+
+Front-end work is done in the separate `DEV_NUTRITION_APP` repo, which runs in Docker only and has no Cloudflare or GitHub deploy setup. Only the HTML, CSS and JS in `public/` flow from DEV into this repo. Everything Cloudflare-related stays here: `src/`, `wrangler.toml`, the deploy scripts in `package.json`, `.github/`, `public/_headers` and these docs. The two repos have unrelated git histories, so changes move as file copies, not merges or pushes.
+
+1. In `DEV_NUTRITION_APP`, make the change and **commit it on its `dev` branch**. Only committed work is copied.
+2. In this repo, run the sync as a dry run:
+
+   ```bash
+   scripts/sync-from-dev.sh
+   ```
+
+   It writes nothing. It checks the changed files, prints the diff, and prints an 8-character **fingerprint** of exactly those files.
+3. Read the diff. If it is right, approve it:
+
+   ```bash
+   scripts/sync-from-dev.sh --apply                    # asks you to type the fingerprint
+   APPROVE=<fingerprint> scripts/sync-from-dev.sh --apply   # no terminal
+   ```
+4. Check it locally (`docker compose up`; the project folder is mounted, so changes show after a hard refresh), then commit on `dev`, merge to `main` and approve the real-app deploy as usual. The script never commits, pushes or deploys.
+
+**The gate.** `--apply` copies nothing unless both of these pass:
+
+- **Automated checks** on the DEV version of every changed file. A failure blocks the sync with no override. They check JavaScript syntax; no inline `<script>`, `<style>`, `style="..."` or `onclick="..."` (the CSP in `public/_headers` blocks them); only the CSP-allowed hosts (Google Fonts) and no `data:` URIs; and that `index.html` still has the ids `script.js` needs (`add-form`, `item-input`, `quantity-input`, `add-btn`, `status`, `item-list`).
+- **Approval of the exact content.** The fingerprint covers the files being copied, so an approval from an earlier run stops matching as soon as anything changes. Approvals are appended to `.git/sync-approvals.log` (local, untracked).
+
+Notes:
+
+- `public/rules.js` is also imported by the Worker, so a change there alters server-side validation. The script warns, and the API should be tested before merging.
+- A change in DEV that needs something outside `public/` (a new API route, a migration, a `wrangler.toml` setting, a new dependency) is not carried by the sync. Make that change in this repo by hand.
+- The script does not delete files. A file removed in DEV has to be removed here manually.
+- The checks catch common ways a front-end change breaks under the CSP; they do not replace looking at the page in a browser.
+- Override the source with `DEV_DIR` (default `../DEV_NUTRITION_APP`) and `DEV_BRANCH` (default `dev`).
 
 ## API
 
