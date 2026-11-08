@@ -31,7 +31,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - [ ] Rate limiting rule on the demo Worker's `/api/*`
 - [ ] Decide: one private list per user, or shared household lists
 - [ ] Automated tests for `public/rules.js` and `src/store.js`
-- [ ] Reword placeholder text and labels from "grocery" to nutrition theme
+- [x] Reword placeholder text and labels from "grocery" to nutrition theme
 
 ## Known issues
 
