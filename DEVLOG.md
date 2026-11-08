@@ -226,3 +226,11 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Deployed and checked live in a real browser, on the demo and on the real app behind Cloudflare Access: headers present on `/` and `/about.html`, no CSP violations or console errors, all four fonts load, and the API works. Add/remove was exercised on the demo only; the real app check was read-only to leave real data alone.
 - Patch bump: security hardening, no new capability.
 
+
+### v0.7.2 — 2026-11-08 — Nutrition wording
+
+- Reworded the remaining "grocery" text to the nutrition theme: page titles and headings now read "Nutrition App" / "About The Nutrition App"; intro says users add and remove foods; labels are "Add Food Item:" and "Quantity:".
+- `scripts/preview.sh` and the README now name preview containers `nutrition-preview-<port>`.
+- Local Docker: the project folder was renamed to `PROD_NUTRITION_APP`, so the compose project is now `prod_nutrition_app`. The local D1 data was copied from the old `grocery_list_app_wrangler_state` volume; the old containers, images, volumes and folder were removed.
+- Verified: the live demo serves the new text on `/` and `/about.html`; both deploy workflows succeeded.
+- Patch bump: wording and rename, no new capability.
