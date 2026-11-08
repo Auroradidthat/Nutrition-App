@@ -63,6 +63,7 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 | Hostname-based Access application for `nutrition-app.rodesignedthat.workers.dev` instead of the Worker's own Access tab | The Worker-level application returned Blocked for the owner's email despite a matching Allow policy, and its policy evaluation couldn't be inspected. The hostname-based application worked immediately. |
 | Reject duplicate names (case-insensitive) and add a `+` button that increments the tally | Two rows for "Milk" is clutter; `+` is the intended way to want more. Increment is `quantity + 1` in one SQL statement (guarded by `quantity < 99`), not read-modify-write, so two devices tapping at once both count. No unique index/migration: a race between two simultaneous adds of a new name could still make a duplicate, judged not worth a migration that fails on existing duplicates. |
 | Docker runs `wrangler dev`, bound to `127.0.0.1` | Convenient local/self-hosted run, but it has no real auth (fake `DEV_USER`), so it is not reachable from other machines. Real multi-device use needs the Cloudflare deployment. |
+| Front-end changes move DEV to PROD by a gated file copy (`scripts/sync-from-dev.sh`), not by git merge | The two repos have unrelated histories, and DEV must stay free of Cloudflare config. Only `public/` HTML/CSS/JS is copied, so `wrangler.toml`, the deploy scripts, `.github/` and the docs cannot be overwritten. Approval is tied to a fingerprint of the exact files, so it cannot go stale. |
 
 ---
 
@@ -234,3 +235,15 @@ Release steps: update `DEVLOG.md`, run `npm version <patch|minor> --no-git-tag-v
 - Local Docker: the project folder was renamed to `PROD_NUTRITION_APP`, so the compose project is now `prod_nutrition_app`. The local D1 data was copied from the old `grocery_list_app_wrangler_state` volume; the old containers, images, volumes and folder were removed.
 - Verified: the live demo serves the new text on `/` and `/about.html`; both deploy workflows succeeded.
 - Patch bump: wording and rename, no new capability.
+
+### v0.7.3 — 2026-11-08 — Gated DEV to PROD front-end sync
+
+- Context: `DEV_NUTRITION_APP` is a separate repo (unrelated git history) that runs in Docker only. It was synced from this project, then stripped of Cloudflare config: no deploy workflows or scripts, placeholder D1 ids, blank Access settings, deploy/Access docs removed. Plan: front-end work happens there; this repo keeps all Cloudflare files and is the only one that pushes to GitHub and deploys.
+- Added `scripts/sync-from-dev.sh`. It copies only the HTML, CSS and JS under `public/` from DEV's committed `dev` branch. It never touches `src/`, `wrangler.toml`, the package files, `.github/`, `public/_headers` or the docs, and it never commits, pushes, deploys or deletes.
+- The gate: (1) automated checks on every changed file, with no override: JS syntax, no inline `<script>`/`<style>`/`style=`/`onclick=` (the CSP blocks them), only CSP-allowed hosts, no `data:` URIs, and the ids `script.js` needs must still exist in `index.html`; (2) approval of the exact content: the script prints the diff and an 8-character fingerprint of the changed files, and `--apply` copies nothing unless that fingerprint is typed back or passed as `APPROVE=`. Approvals are logged to `.git/sync-approvals.log` (local, untracked). `public/rules.js` triggers a warning because the Worker imports it.
+- Bug found while testing: `node --check` skips the real parse when it auto-detects an ES module from a `.js` name, so a deliberate syntax error in `rules.js` passed. The script now checks a `.mjs` copy.
+- Verified against a scratch clone of DEV: clean change passes; `--apply` without a terminal or with a wrong fingerprint copies nothing; the right fingerprint copies and logs; a bad change is blocked on an inline script, `onclick=`, an external host, a missing id and a JS syntax error.
+- End-to-end test (local only, nothing pushed or deployed): a one-line `about.html` title change committed in DEV was synced to PROD with the gate, served by the local Docker app, then fully reverted in both repos (DEV reset to its prior commit, PROD file restored, approval log line removed). A follow-up dry run reported the front end in sync.
+- README: new "Syncing front-end changes from DEV" section describing the workflow and gate.
+- Not done: `package.json` and the tag are still at 0.7.2. Changing `package.json` matches the deploy workflows' path filter and would start a deploy (the real-app one needs approval), so the bump waits for the next release that deploys anyway. The sync does not carry changes outside `public/`, and does not delete files.
+- Patch bump: tooling and docs, no app change.
