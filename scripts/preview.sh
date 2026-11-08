@@ -24,15 +24,15 @@ check_port() {
 if [ "${1:-}" = "--stop" ]; then
   port="${2:-8799}"
   check_port "$port"
-  docker rm -f "grocery-preview-$port" >/dev/null 2>&1 && echo "Stopped grocery-preview-$port" || echo "Nothing running on $port"
+  docker rm -f "nutrition-preview-$port" >/dev/null 2>&1 && echo "Stopped nutrition-preview-$port" || echo "Nothing running on $port"
   exit 0
 fi
 
 branch="${1:-$(git branch --show-current)}"
 port="${2:-8799}"
 check_port "$port"
-name="grocery-preview-$port"
-image="grocery-preview:$port"
+name="nutrition-preview-$port"
+image="nutrition-preview:$port"
 
 git rev-parse --verify --quiet "$branch^{commit}" >/dev/null || { echo "Unknown branch: $branch" >&2; exit 1; }
 [ -f .dev.vars ] || { echo "Missing .dev.vars (see README); the preview would show 'signed out'." >&2; exit 1; }

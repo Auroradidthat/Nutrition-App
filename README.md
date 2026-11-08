@@ -91,7 +91,7 @@ scripts/preview.sh dev 8800         # a named branch on its own port
 scripts/preview.sh --stop 8800      # stop that preview
 ```
 
-- It builds an image from the committed branch (`git archive`), so uncommitted changes are not included. Each port gets its own container (`grocery-preview-<port>`) and a fresh database.
+- It builds an image from the committed branch (`git archive`), so uncommitted changes are not included. Each port gets its own container (`nutrition-preview-<port>`) and a fresh database.
 - Only `.dev.vars` is mounted. Open it on `localhost` or `127.0.0.1`; any other hostname is treated as signed out.
 - Recommended flow for front-end prototypes: build the HTML/CSS separately, integrate it into `public/` on `dev`, run the preview, then merge `dev` into `main`. The add form must stay a real `<form id="add-form">` with the ids `script.js` looks up (`item-input`, `quantity-input`, `add-btn`, `status`, `item-list`).
 

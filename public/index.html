@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grocery List Web App</title>
+  <title>Nutrition App</title>
   <link rel="stylesheet" href="/styles.css">
   <script type="module" src="/script.js"></script>
 </head>
@@ -17,10 +17,10 @@
     <main>
         <section>
             <div class="heading-style">
-                <h1>Grocery List Web App</h1>
+                <h1>Nutrition App</h1>
                 <p>
-                    This application allows the user to add and remove grocery items within their list. Future
-                    features will include recipes that can be added to the list, as well as a budget feature.
+                    This application allows the user to add and remove foods within their list. Future
+                    features will include recipes that can be added to the list, as well as nutrition tracking.
                 </p>
             </div>
         </section>
@@ -32,12 +32,12 @@
                 <form id="add-form" class="module-items">
                     <div class="item-group">
                         <label for="item-input">
-                            <strong>Add Grocery Item:</strong>
+                            <strong>Add Food Item:</strong>
                         </label>
                         <input type="text" id="item-input" placeholder="e.g. Milk" autocomplete="off">
                     </div>
                     <div class ="qty-group">
-                        <label for="quantity-input"><strong>Item Quantity:</strong></label>
+                        <label for="quantity-input"><strong>Quantity:</strong></label>
                         <input type="number" id="quantity-input" value="1" inputmode="numeric" min="1" max="99">
                     </div>
                     <div>
