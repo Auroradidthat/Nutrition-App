@@ -2,7 +2,7 @@
 
 A mobile-first web app for keeping a list of food items with quantities, built with plain HTML/CSS/JS on the front end and a Cloudflare Worker + D1 database on the back end.
 
-> **Status: deployed and working (v0.7.1).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). **Try the public demo (no login, 15 items per visitor): https://nutrition-demo.rodesignedthat.workers.dev**
+> **Status: deployed and working (v0.7.2).** The real app at https://nutrition-app.rodesignedthat.workers.dev is protected by Cloudflare Access (your email only). **Try the public demo (no login, 15 items per visitor): https://nutrition-demo.rodesignedthat.workers.dev**
 
 ## Features
 
