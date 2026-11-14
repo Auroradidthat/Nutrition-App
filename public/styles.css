@@ -51,6 +51,9 @@ nav a:hover {
 }
 
 main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     max-width: 40rem;
     margin: 0 auto;
     padding: 1rem;
@@ -168,9 +171,10 @@ label {
     white-space: nowrap;
 }
 
-/* The name field keeps a readable minimum width; the quantity box is the same size everywhere. */
+/* The name field and the quantity box are fixed sizes, the same everywhere. */
 .module-items input[type="text"] {
-    min-width: 12rem;
+    width: 14.5rem;
+    min-width: 0;
 }
 
 .module-items input[type="number"] {
